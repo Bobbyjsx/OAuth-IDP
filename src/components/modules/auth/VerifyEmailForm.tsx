@@ -6,17 +6,14 @@ import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import {
   ApiErrorCode,
-  authSessionQueryKeys,
   getApiErrorCode,
   getServerError,
   isSessionEndedError,
-  resendOtp,
-  verifyEmail,
+  useResendOtp,
+  useVerifyEmail,
 } from "@/api";
 import { itemVariants } from "@/lib/motion";
-import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { motion } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -25,7 +22,6 @@ const MAX_ATTEMPTS = 5;
 
 export function VerifyEmailForm() {
   const { session, sessionId } = useAuthSession();
-  const queryClient = useQueryClient();
 
   // Read email stored by Login/SignupForm in sessionStorage — never from the URL.
   // Lazy initializer runs once synchronously, no effect needed.
@@ -75,107 +71,91 @@ export function VerifyEmailForm() {
     };
   }, []);
 
-  // Verify OTP
-  const verifyMutation = useMutation({
-    mutationFn: (token: string) =>
-      session
-        ? verifyEmail(session.session_id, token)
-        : Promise.reject(new Error("No session")),
-    onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
-      if (data.redirect_url) {
-        toast.success("Email verified successfully!");
-        // Clean up stored email before leaving
-        if (sessionId)
-          sessionStorage.removeItem(`verify_email_${sessionId}`);
-        window.location.href = data.redirect_url;
-      }
-    },
-    onError: (err: unknown) => {
-      const code = getApiErrorCode(err);
-
-      if (code === ApiErrorCode.InvalidVerificationToken) {
-        const remaining =
-          attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
-        setAttemptsLeft(remaining);
-        setInlineError(
-          remaining > 0
-            ? `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
-            : "Incorrect code.",
-        );
-        setOtp("");
-      } else if (code === ApiErrorCode.OtpAttemptsExceeded) {
-        setIsLocked(true);
-        setInlineError(
-          "Too many incorrect attempts. Please start a new login.",
-        );
-      } else if (code === ApiErrorCode.VerificationTokenExpired) {
-        setInlineError(
-          "Your code has expired. Request a new one below.",
-        );
-        setOtp("");
-        // Auto-trigger resend if cooldown is done
-        if (resendCountdown === 0) {
-          resendMutation.mutate();
-        }
-      } else if (isSessionEndedError(code)) {
-        if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
-      } else {
-        setInlineError(
-          getServerError(err, "Failed to verify email. Please try again."),
-        );
-      }
-    },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
-  });
-
   // Resend OTP
-  const resendMutation = useMutation({
-    mutationFn: () =>
-      session
-        ? resendOtp(session.session_id)
-        : Promise.reject(new Error("No session")),
-    onSuccess: () => {
-      toast.success("A new code has been sent to your email.");
-      setOtp("");
-      setInlineError(null);
-      setAttemptsLeft(null);
-      startCountdown();
+  const { mutate: performResend, isPending: isResending } = useResendOtp(
+    session?.session_id ?? "",
+    {
+      onSuccess: () => {
+        toast.success("A new code has been sent to your email.");
+        setOtp("");
+        setInlineError(null);
+        setAttemptsLeft(null);
+        startCountdown();
+      },
+      onError: (err: unknown) => {
+        const code = getApiErrorCode(err);
+        if (isSessionEndedError(code)) {
+          if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
+        } else {
+          toast.error(
+            getServerError(err, "Failed to resend code. Please try again."),
+          );
+        }
+      },
     },
-    onError: (err: unknown) => {
-      const code = getApiErrorCode(err);
-      if (isSessionEndedError(code)) {
-        if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
-      } else {
-        toast.error(
-          getServerError(err, "Failed to resend code. Please try again."),
-        );
-      }
+  );
+
+  // Verify OTP
+  const { mutate: performVerify, isPending: isVerifying } = useVerifyEmail(
+    session?.session_id ?? "",
+    {
+      onSuccess: (data) => {
+        if (data.redirect_url) {
+          toast.success("Email verified successfully!");
+          // Clean up stored email before leaving
+          if (sessionId)
+            sessionStorage.removeItem(`verify_email_${sessionId}`);
+          window.location.href = data.redirect_url;
+        }
+      },
+      onError: (err: unknown) => {
+        const code = getApiErrorCode(err);
+
+        if (code === ApiErrorCode.InvalidVerificationToken) {
+          const remaining =
+            attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
+          setAttemptsLeft(remaining);
+          setInlineError(
+            remaining > 0
+              ? `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
+              : "Incorrect code.",
+          );
+          setOtp("");
+        } else if (code === ApiErrorCode.OtpAttemptsExceeded) {
+          setIsLocked(true);
+          setInlineError(
+            "Too many incorrect attempts. Please start a new login.",
+          );
+        } else if (code === ApiErrorCode.VerificationTokenExpired) {
+          setInlineError(
+            "Your code has expired. Request a new one below.",
+          );
+          setOtp("");
+          // Auto-trigger resend if cooldown is done
+          if (resendCountdown === 0) {
+            performResend();
+          }
+        } else if (isSessionEndedError(code)) {
+          if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
+        } else {
+          setInlineError(
+            getServerError(err, "Failed to verify email. Please try again."),
+          );
+        }
+      },
     },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
-  });
+  );
 
   if (!session) return null;
 
   const canSubmit = otp.length === 6 && !isLocked;
-  const canResend = resendCountdown === 0 && !resendMutation.isPending;
+  const canResend = resendCountdown === 0 && !isResending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setInlineError(null);
-    verifyMutation.mutate(otp);
+    performVerify(otp);
   };
 
   // ── Locked state ─────────────────────────────────────────────────────────────
@@ -253,7 +233,7 @@ export function VerifyEmailForm() {
             <OtpInput
               value={otp}
               onChange={setOtp}
-              disabled={verifyMutation.isPending || isLocked}
+              disabled={isVerifying || isLocked}
               hasError={!!inlineError}
             />
 
@@ -272,7 +252,7 @@ export function VerifyEmailForm() {
               <Button
                 type="submit"
                 className="w-full h-11 text-[15px] rounded-xl font-medium"
-                isLoading={verifyMutation.isPending}
+                isLoading={isVerifying}
                 disabled={!canSubmit}
               >
                 Verify email
@@ -292,11 +272,11 @@ export function VerifyEmailForm() {
             ) : (
               <button
                 type="button"
-                onClick={() => resendMutation.mutate()}
+                onClick={() => performResend()}
                 disabled={!canResend}
                 className="text-body-md text-gray-medium dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-4 hover:underline"
               >
-                {resendMutation.isPending ? "Sending…" : "Resend code"}
+                {isResending ? "Sending…" : "Resend code"}
               </button>
             )}
           </div>

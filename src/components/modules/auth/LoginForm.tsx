@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { authSessionQueryKeys, getServerError, login } from "@/api";
+import { getServerError, useLogin } from "@/api";
 import { itemVariants } from "@/lib/motion";
-import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -25,7 +23,6 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const { session } = useAuthSession();
-  const queryClient = useQueryClient();
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -35,45 +32,37 @@ export function LoginForm() {
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: (values: LoginValues) =>
-      session
-        ? login(session.session_id, values)
-        : Promise.reject(new Error("No session")),
-    onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
-      if (!session) return;
-      if (data.redirect_url) {
-        window.location.href = data.redirect_url;
-      } else if (
-        "email_verification_required" in data &&
-        data.email_verification_required
-      ) {
-        // Store email in sessionStorage — never in the URL (session is a bearer token)
-        sessionStorage.setItem(
-          `verify_email_${session.session_id}`,
-          form.getValues("email"),
+  const { mutate: performLogin, isPending } = useLogin<LoginValues>(
+    session?.session_id ?? "",
+    {
+      onSuccess: (data) => {
+        if (!session) return;
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else if (
+          "email_verification_required" in data &&
+          data.email_verification_required
+        ) {
+          // Store email in sessionStorage — never in the URL (session is a bearer token)
+          sessionStorage.setItem(
+            `verify_email_${session.session_id}`,
+            form.getValues("email"),
+          );
+          window.location.href = `/auth/${session.session_id}/verify-email`;
+        } else {
+          toast.error("An unexpected response was received.");
+        }
+      },
+      onError: (err: unknown) => {
+        toast.error(
+          getServerError(err, "Failed to sign in. Please check your credentials."),
         );
-        window.location.href = `/auth/${session.session_id}/verify-email`;
-      } else {
-        toast.error("An unexpected response was received.");
-      }
+      },
     },
-    onError: (err: unknown) => {
-      toast.error(
-        getServerError(err, "Failed to sign in. Please check your credentials."),
-      );
-    },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
-  });
+  );
 
   const onSubmit = (values: LoginValues) => {
-    loginMutation.mutate(values);
+    performLogin(values);
   };
 
   if (!session) return null;
@@ -114,7 +103,7 @@ export function LoginForm() {
               <Button
                 type="submit"
                 className="w-full h-10 text-[15px] rounded-xl font-medium"
-                isLoading={loginMutation.isPending}
+                isLoading={isPending}
               >
                 Continue
               </Button>

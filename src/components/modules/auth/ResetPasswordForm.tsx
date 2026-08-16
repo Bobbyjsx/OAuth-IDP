@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { authSessionQueryKeys, getServerError, resetPassword } from "@/api";
+import { getServerError, useResetPassword } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -29,7 +28,6 @@ type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export function ResetPasswordForm() {
   const { session } = useAuthSession();
-  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -43,12 +41,10 @@ export function ResetPasswordForm() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (values: ResetPasswordValues) =>
-      resetPassword(session?.session_id || "", {
-        reset_token: token || "",
-        new_password: values.new_password,
-      }),
+  const { mutate: performReset, isPending } = useResetPassword<{
+    reset_token: string;
+    new_password: string;
+  }>(session?.session_id ?? "", {
     onSuccess: () => {
       setSuccess(true);
       toast.success("Password reset successfully!");
@@ -61,13 +57,6 @@ export function ResetPasswordForm() {
         ),
       );
     },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
   });
 
   if (!session) return null;
@@ -77,7 +66,10 @@ export function ResetPasswordForm() {
       toast.error("Missing reset token. Please use the link from your email.");
       return;
     }
-    mutation.mutate(values);
+    performReset({
+      reset_token: token,
+      new_password: values.new_password,
+    });
   };
 
   if (!token) {
@@ -149,7 +141,7 @@ export function ResetPasswordForm() {
               <Button
                 type="submit"
                 className="w-full h-10 text-[15px] rounded-xl font-medium"
-                isLoading={mutation.isPending}
+                isLoading={isPending}
               >
                 Reset Password
               </Button>

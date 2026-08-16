@@ -3,10 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { authSessionQueryKeys, forgotPassword, getServerError } from "@/api";
+import { getServerError, useForgotPassword } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
@@ -22,7 +21,6 @@ type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
   const { session } = useAuthSession();
-  const queryClient = useQueryClient();
   const [success, setSuccess] = useState(false);
 
   const form = useForm<ForgotPasswordValues>({
@@ -32,33 +30,25 @@ export function ForgotPasswordForm() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: (values: ForgotPasswordValues) =>
-      session
-        ? forgotPassword(session.session_id, values.email)
-        : Promise.reject(new Error("No session")),
-    onSuccess: () => {
-      setSuccess(true);
-      toast.success("Password reset link sent!");
+  const { mutate: performSendReset, isPending } = useForgotPassword(
+    session?.session_id ?? "",
+    {
+      onSuccess: () => {
+        setSuccess(true);
+        toast.success("Password reset link sent!");
+      },
+      onError: (err: unknown) => {
+        toast.error(
+          getServerError(err, "Failed to process request. Please try again."),
+        );
+      },
     },
-    onError: (err: unknown) => {
-      toast.error(
-        getServerError(err, "Failed to process request. Please try again."),
-      );
-    },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
-  });
+  );
 
   if (!session) return null;
 
   const onSubmit = (values: ForgotPasswordValues) => {
-    mutation.mutate(values);
+    performSendReset(values.email);
   };
 
   if (success) {
@@ -105,7 +95,7 @@ export function ForgotPasswordForm() {
               <Button
                 type="submit"
                 className="w-full h-10 text-[15px] rounded-xl font-medium"
-                isLoading={mutation.isPending}
+                isLoading={isPending}
               >
                 Send Reset Link
               </Button>

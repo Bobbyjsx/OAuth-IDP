@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { authSessionQueryKeys, getServerError, signup } from "@/api";
+import { getServerError, useSignup } from "@/api";
 import { itemVariants } from "@/lib/motion";
-import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -25,7 +23,6 @@ type SignupValues = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
   const { session } = useAuthSession();
-  const queryClient = useQueryClient();
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -35,49 +32,41 @@ export function SignupForm() {
     },
   });
 
-  const signupMutation = useMutation({
-    mutationFn: (values: SignupValues) =>
-      session
-        ? signup(session.session_id, values)
-        : Promise.reject(new Error("No session")),
-    onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
-      if (!session) return;
-      if (data.redirect_url) {
-        window.location.href = data.redirect_url;
-      } else if (
-        ("email_verification_required" in data &&
-          data.email_verification_required) ||
-        session.application.require_email_verification
-      ) {
-        // Store email in sessionStorage — never in the URL (session is a bearer token)
-        sessionStorage.setItem(
-          `verify_email_${session.session_id}`,
-          form.getValues("email"),
+  const { mutate: performSignup, isPending } = useSignup<SignupValues>(
+    session?.session_id ?? "",
+    {
+      onSuccess: (data) => {
+        if (!session) return;
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else if (
+          ("email_verification_required" in data &&
+            data.email_verification_required) ||
+          session.application.require_email_verification
+        ) {
+          // Store email in sessionStorage — never in the URL (session is a bearer token)
+          sessionStorage.setItem(
+            `verify_email_${session.session_id}`,
+            form.getValues("email"),
+          );
+          window.location.href = `/auth/${session.session_id}/verify-email`;
+        } else {
+          toast.success("Account created successfully!");
+          window.location.href = `/auth/${session.session_id}/login`;
+        }
+      },
+      onError: (err: unknown) => {
+        toast.error(
+          getServerError(err, "Failed to create account. Please try again."),
         );
-        window.location.href = `/auth/${session.session_id}/verify-email`;
-      } else {
-        toast.success("Account created successfully!");
-        window.location.href = `/auth/${session.session_id}/login`;
-      }
+      },
     },
-    onError: (err: unknown) => {
-      toast.error(
-        getServerError(err, "Failed to create account. Please try again."),
-      );
-    },
-    onSettled: () => {
-      if (session?.session_id) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(session.session_id),
-        });
-      }
-    },
-  });
+  );
 
   if (!session) return null;
 
   const onSubmit = (values: SignupValues) => {
-    signupMutation.mutate(values);
+    performSignup(values);
   };
 
   if (!session.application.allow_signup) {
@@ -128,7 +117,7 @@ export function SignupForm() {
               <Button
                 type="submit"
                 className="w-full h-10 text-[15px] rounded-xl font-medium"
-                isLoading={signupMutation.isPending}
+                isLoading={isPending}
               >
                 Continue
               </Button>

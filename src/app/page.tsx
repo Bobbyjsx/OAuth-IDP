@@ -1,19 +1,13 @@
 "use client";
 
-import { checkHealth, healthQueryKeys } from "@/api";
+import { useHealth } from "@/api";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function Home() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: healthQueryKeys.all,
-    queryFn: checkHealth,
-    retry: 1,
-    refetchInterval: 30000,
-  });
+  const { data, isLoading, isError } = useHealth();
 
-  const isHealthy = !isError && data;
+  const isHealthy = !isError && Boolean(data);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-50 dark:bg-zinc-950 font-sans text-on-surface">
