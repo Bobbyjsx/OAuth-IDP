@@ -1,5 +1,6 @@
 "use client";
 
+import { CancelButton } from "@/components/modules/auth/CancelButton";
 import { OtpInput } from "@/components/ui/otp-input";
 import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/use-auth-session";
@@ -8,7 +9,6 @@ import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { itemVariants } from "@/lib/motion";
 import { motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,8 +29,7 @@ function getApiErrorCode(err: unknown): string | null {
 }
 
 export function VerifyEmailForm() {
-  const { session, sessionId } = useAuthSession();
-  const router = useRouter();
+  const { session, sessionId, refetch } = useAuthSession();
 
   // Read email stored by Login/SignupForm in sessionStorage — never from the URL.
   // Lazy initializer runs once synchronously, no effect needed.
@@ -126,10 +125,9 @@ export function VerifyEmailForm() {
         code === ERROR_SESSION_EXPIRED ||
         code === ERROR_SESSION_CANCELLED
       ) {
-        toast.error("Your session has expired. Please start over.");
-        if (sessionId)
-          sessionStorage.removeItem(`verify_email_${sessionId}`);
-        router.push(`/auth/${sessionId}/login`);
+        if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
+        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
+        refetch();
       } else {
         setInlineError(
           getServerError(err, "Failed to verify email. Please try again."),
@@ -157,10 +155,9 @@ export function VerifyEmailForm() {
         code === ERROR_SESSION_EXPIRED ||
         code === ERROR_SESSION_CANCELLED
       ) {
-        toast.error("Your session has expired. Please start over.");
-        if (sessionId)
-          sessionStorage.removeItem(`verify_email_${sessionId}`);
-        router.push(`/auth/${sessionId}/login`);
+        if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
+        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
+        refetch();
       } else {
         toast.error(
           getServerError(err, "Failed to resend code. Please try again."),
@@ -215,17 +212,12 @@ export function VerifyEmailForm() {
               </p>
             </div>
 
-            <Button
-              type="button"
-              className="w-full h-10 text-[15px] rounded-xl font-medium"
-              onClick={() => {
-                if (sessionId)
-                  sessionStorage.removeItem(`verify_email_${sessionId}`);
-                router.push(`/auth/${sessionId}/login`);
-              }}
-            >
-              Back to login
-            </Button>
+            <div className="pt-2 flex justify-center">
+              <CancelButton
+                sessionId={session.session_id}
+                appName={session.application.name}
+              />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -307,6 +299,14 @@ export function VerifyEmailForm() {
                 {resendMutation.isPending ? "Sending…" : "Resend code"}
               </button>
             )}
+          </div>
+
+          {/* Cancel */}
+          <div className="mt-4 flex justify-center">
+            <CancelButton
+              sessionId={session.session_id}
+              appName={session.application.name}
+            />
           </div>
         </div>
       </motion.div>

@@ -1,14 +1,16 @@
 "use client";
 
+import { CancelButton } from "@/components/modules/auth/CancelButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { getServerError, oauthApi } from "@/lib/api";
+import { itemVariants } from "@/lib/motion";
 import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -21,11 +23,8 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
-import { itemVariants } from "@/lib/motion";
-import { motion } from "framer-motion";
-
 export function LoginForm() {
-  const { session } = useAuthSession();
+  const { session, refetch } = useAuthSession();
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -59,11 +58,15 @@ export function LoginForm() {
       }
     },
     onError: (err: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const code = (err as any)?.response?.data?.error as string | undefined;
+      if (code === "session_expired" || code === "session_cancelled") {
+        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
+        refetch();
+        return;
+      }
       toast.error(
-        getServerError(
-          err,
-          "Failed to sign in. Please check your credentials.",
-        ),
+        getServerError(err, "Failed to sign in. Please check your credentials."),
       );
     },
   });
@@ -134,6 +137,16 @@ export function LoginForm() {
           </Link>
         </motion.p>
       )}
+
+      <motion.div
+        variants={itemVariants}
+        className="mt-6 flex justify-center"
+      >
+        <CancelButton
+          sessionId={session.session_id}
+          appName={session.application.name}
+        />
+      </motion.div>
     </div>
   );
 }
