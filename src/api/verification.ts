@@ -33,11 +33,6 @@ export function useVerifyEmail(
     ...options,
     mutationFn: (verificationToken: string) => verifyEmail(sessionId, verificationToken),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });
@@ -53,11 +48,6 @@ export function useResendOtp(
     ...options,
     mutationFn: () => resendOtp(sessionId),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });

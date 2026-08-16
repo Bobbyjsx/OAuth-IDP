@@ -37,11 +37,6 @@ export function useLogin<TVariables = Record<string, string>>(
     ...options,
     mutationFn: (variables: TVariables) => login(sessionId, variables as Record<string, string>),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });
@@ -57,11 +52,6 @@ export function useSignup<TVariables = Record<string, string>>(
     ...options,
     mutationFn: (variables: TVariables) => signup(sessionId, variables as Record<string, string>),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });

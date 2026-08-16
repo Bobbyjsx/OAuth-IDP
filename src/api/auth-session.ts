@@ -42,11 +42,6 @@ export function useCancelSession(
       options?.onSuccess?.(...args);
     },
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });

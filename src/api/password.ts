@@ -32,11 +32,6 @@ export function useForgotPassword(
     ...options,
     mutationFn: (email: string) => forgotPassword(sessionId, email),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });
@@ -53,11 +48,6 @@ export function useResetPassword<TVariables = Record<string, string>>(
     mutationFn: (credentials: TVariables) =>
       resetPassword(sessionId, credentials as Record<string, string>),
     onSettled: (...args) => {
-      if (sessionId) {
-        queryClient.invalidateQueries({
-          queryKey: authSessionQueryKeys.detail(sessionId),
-        });
-      }
       options?.onSettled?.(...args);
     },
   });
