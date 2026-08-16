@@ -14,7 +14,8 @@ import {
 } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCountdown } from "@/hooks/use-countdown";
+import { useState } from "react";
 import { toast } from "sonner";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -36,40 +37,11 @@ export function VerifyEmailForm() {
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
-  // Resend countdown — initialized to cooldown so the timer starts on mount
-  const [resendCountdown, setResendCountdown] = useState(RESEND_COOLDOWN_SECONDS);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  /** Resets and restarts the resend cooldown timer. */
-  const startCountdown = () => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    setResendCountdown(RESEND_COOLDOWN_SECONDS);
-    countdownRef.current = setInterval(() => {
-      setResendCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownRef.current!);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  useEffect(() => {
-    // Kick off the countdown interval on mount (code was just sent)
-    countdownRef.current = setInterval(() => {
-      setResendCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownRef.current!);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => {
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    };
-  }, []);
+  // Resend countdown timer
+  const { countdown: resendCountdown, start: startCountdown } = useCountdown({
+    seconds: RESEND_COOLDOWN_SECONDS,
+    autoStart: true,
+  });
 
   // Resend OTP
   const { mutate: performResend, isPending: isResending } = useResendOtp(
