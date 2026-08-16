@@ -65,4 +65,13 @@ export const oauthApi = {
     );
     return data;
   },
+
+  cancelSession: async (sessionId: string) => {
+    const { data } = await api.post<{
+      session_id: string;
+      status: string;
+      redirect_url: string;
+    }>(`/api/v1/auth-sessions/${sessionId}/cancel`);
+    return data;
+  },
 };

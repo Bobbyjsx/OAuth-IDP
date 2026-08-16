@@ -16,6 +16,8 @@ export interface AuthSessionResponse {
   status: 'pending' | 'authenticated' | 'completed' | 'cancelled' | 'expired';
   application: PublicApplicationConfig;
   scopes: string[];
+  /** Present when status is 'expired' or 'cancelled' — RFC-compliant callback URL to return the user to their app. */
+  redirect_url?: string | null;
 }
 
 export interface OAuthRedirectResponse {
