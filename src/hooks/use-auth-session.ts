@@ -1,11 +1,9 @@
 import { oauthApi } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useParams } from "next/navigation";
 
 export function useAuthSession() {
   const params = useParams();
-  const pathname = usePathname();
   const sessionId = params.session_id as string;
 
   const query = useQuery({
@@ -13,17 +11,13 @@ export function useAuthSession() {
     queryFn: () => oauthApi.getSession(sessionId),
     enabled: !!sessionId,
     retry: false,
-    staleTime: 0,
+    // Keep data fresh for 30s — avoids re-fetching on every mount within the
+    // same page, while still re-validating when the user returns to the tab.
+    staleTime: 30_000,
     refetchOnMount: true,
-    refetchOnWindowFocus: "always",
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-
-  useEffect(() => {
-    if (sessionId) {
-      query.refetch();
-    }
-  }, [pathname, sessionId, query.refetch]);
 
   return {
     session: query.data,
