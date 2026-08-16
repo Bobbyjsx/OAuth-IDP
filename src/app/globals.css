@@ -6,10 +6,53 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
+  /* Warm Monochrome — taste-skill minimalist + soft-structuralism */
+  --color-border-subtle: rgba(0, 0, 0, 0.06);
+  --color-gray-light: #f7f6f3;
+  --color-gray-medium: #787774;
+
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-on-surface: #111111;
+  --color-on-surface-variant: #5a5a57;
+  --color-error: #eb5757;
+
+  /* Typography */
+  --font-geist: "Geist", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  --font-headline-md: var(--font-geist);
+  --font-body-md: var(--font-geist);
+  --text-headline-md: 1.25rem;
+  --text-body-md: 0.875rem;
+
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+  --color-primary-950: var(--primary-950);
+  --color-primary: var(--primary-500);
+
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+  --color-secondary-500: var(--secondary-500);
+  --color-secondary-600: var(--secondary-600);
+  --color-secondary-700: var(--secondary-700);
+  --color-secondary-800: var(--secondary-800);
+  --color-secondary-900: var(--secondary-900);
+  --color-secondary-950: var(--secondary-950);
+  --color-secondary: var(--secondary-500);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +66,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .ambient-shadow {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.02),
+      0 12px 24px rgba(0, 0, 0, 0.03);
+  }
+
+  .ambient-shadow-lg {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.03),
+      0 4px 8px rgba(0, 0, 0, 0.02),
+      0 24px 48px rgba(0, 0, 0, 0.04);
+  }
+
+  .tracking-tight-editorial {
+    letter-spacing: -0.025em;
+  }
 }
