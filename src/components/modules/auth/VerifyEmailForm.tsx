@@ -1,111 +1,315 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useAuthSession } from "@/components/modules/auth-session-provider";
-import { oauthApi } from "@/lib/api";
+import { OtpInput } from "@/components/ui/otp-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { getServerError, oauthApi } from "@/lib/api";
+import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
+import { itemVariants } from "@/lib/motion";
+import { motion } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
-import { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
-const verifyEmailSchema = z.object({
-  verification_token: z.string().length(6, "Verification code must be 6 digits."),
-});
+const RESEND_COOLDOWN_SECONDS = 30;
+const MAX_ATTEMPTS = 5;
 
-type VerifyEmailValues = z.infer<typeof verifyEmailSchema>;
+// Error codes from the Identity Service
+const ERROR_INVALID_TOKEN = "invalid_verification_token";
+const ERROR_ATTEMPTS_EXCEEDED = "otp_attempts_exceeded";
+const ERROR_TOKEN_EXPIRED = "verification_token_expired";
+const ERROR_SESSION_EXPIRED = "session_expired";
+const ERROR_SESSION_CANCELLED = "session_cancelled";
+
+function getApiErrorCode(err: unknown): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = (err as any)?.response?.data;
+  return data?.error ?? null;
+}
 
 export function VerifyEmailForm() {
-  const { session } = useAuthSession();
-  const searchParams = useSearchParams();
-  const emailParam = searchParams.get("email");
-  
-  const [error, setError] = useState<string | null>(null);
+  const { session, sessionId } = useAuthSession();
+  const router = useRouter();
 
-  const form = useForm<VerifyEmailValues>({
-    resolver: zodResolver(verifyEmailSchema),
-    defaultValues: {
-      verification_token: "",
-    },
-  });
+  // Read email stored by Login/SignupForm in sessionStorage — never from the URL.
+  // Lazy initializer runs once synchronously, no effect needed.
+  const [email] = useState<string>(() =>
+    typeof window !== "undefined" && sessionId
+      ? (sessionStorage.getItem(`verify_email_${sessionId}`) ?? "")
+      : "",
+  );
 
-  const mutation = useMutation({
-    mutationFn: (values: VerifyEmailValues) => 
-      oauthApi.verifyEmail(session.session_id, values.verification_token),
-    onSuccess: (data: any) => {
+  const [otp, setOtp] = useState("");
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // Resend countdown — initialized to cooldown so the timer starts on mount
+  const [resendCountdown, setResendCountdown] = useState(RESEND_COOLDOWN_SECONDS);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** Resets and restarts the resend cooldown timer. */
+  const startCountdown = () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setResendCountdown(RESEND_COOLDOWN_SECONDS);
+    countdownRef.current = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    // Kick off the countdown interval on mount (code was just sent)
+    countdownRef.current = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
+  // Verify OTP
+  const verifyMutation = useMutation({
+    mutationFn: (token: string) =>
+      session
+        ? oauthApi.verifyEmail(session.session_id, token)
+        : Promise.reject(new Error("No session")),
+    onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
       if (data.redirect_url) {
+        toast.success("Email verified successfully!");
+        // Clean up stored email before leaving
+        if (sessionId)
+          sessionStorage.removeItem(`verify_email_${sessionId}`);
         window.location.href = data.redirect_url;
-      } else {
-        // Fallback if no redirect is supplied, though backend should provide it on success
-        window.location.href = `/auth/${session.session_id}/login`;
       }
     },
     onError: (err: unknown) => {
-      if (err instanceof AxiosError && err.response?.data?.detail) {
-        setError(err.response.data.detail);
+      const code = getApiErrorCode(err);
+
+      if (code === ERROR_INVALID_TOKEN) {
+        const remaining =
+          attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
+        setAttemptsLeft(remaining);
+        setInlineError(
+          remaining > 0
+            ? `Incorrect code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
+            : "Incorrect code.",
+        );
+        setOtp("");
+      } else if (code === ERROR_ATTEMPTS_EXCEEDED) {
+        setIsLocked(true);
+        setInlineError(
+          "Too many incorrect attempts. Please start a new login.",
+        );
+      } else if (code === ERROR_TOKEN_EXPIRED) {
+        setInlineError(
+          "Your code has expired. Request a new one below.",
+        );
+        setOtp("");
+        // Auto-trigger resend if cooldown is done
+        if (resendCountdown === 0) {
+          resendMutation.mutate();
+        }
+      } else if (
+        code === ERROR_SESSION_EXPIRED ||
+        code === ERROR_SESSION_CANCELLED
+      ) {
+        toast.error("Your session has expired. Please start over.");
+        if (sessionId)
+          sessionStorage.removeItem(`verify_email_${sessionId}`);
+        router.push(`/auth/${sessionId}/login`);
       } else {
-        setError("Invalid verification code. Please try again.");
+        setInlineError(
+          getServerError(err, "Failed to verify email. Please try again."),
+        );
       }
     },
   });
 
-  const onSubmit = (values: VerifyEmailValues) => {
-    setError(null);
-    mutation.mutate(values);
+  // Resend OTP
+  const resendMutation = useMutation({
+    mutationFn: () =>
+      session
+        ? oauthApi.resendOtp(session.session_id)
+        : Promise.reject(new Error("No session")),
+    onSuccess: () => {
+      toast.success("A new code has been sent to your email.");
+      setOtp("");
+      setInlineError(null);
+      setAttemptsLeft(null);
+      startCountdown();
+    },
+    onError: (err: unknown) => {
+      const code = getApiErrorCode(err);
+      if (
+        code === ERROR_SESSION_EXPIRED ||
+        code === ERROR_SESSION_CANCELLED
+      ) {
+        toast.error("Your session has expired. Please start over.");
+        if (sessionId)
+          sessionStorage.removeItem(`verify_email_${sessionId}`);
+        router.push(`/auth/${sessionId}/login`);
+      } else {
+        toast.error(
+          getServerError(err, "Failed to resend code. Please try again."),
+        );
+      }
+    },
+  });
+
+  if (!session) return null;
+
+  const canSubmit = otp.length === 6 && !isLocked;
+  const canResend = resendCountdown === 0 && !resendMutation.isPending;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setInlineError(null);
+    verifyMutation.mutate(otp);
   };
 
-  return (
-    <div className="w-full relative">
-      <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
-        <div className="mb-8 text-center">
-          <p className="text-body-md text-gray-medium dark:text-zinc-400 leading-relaxed max-w-sm mx-auto">
-            {emailParam 
-              ? `We've sent a 6-digit code to ${emailParam}.`
-              : "We've sent a 6-digit verification code to your email."}
-          </p>
-        </div>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="verification_token" className="text-label-md text-on-surface dark:text-zinc-100 font-medium">Verification Code</Label>
-            <Input
-              id="verification_token"
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="000000"
-              className="text-center tracking-widest text-lg font-medium"
-              {...form.register("verification_token")}
-            />
-            {form.formState.errors.verification_token && (
-              <p className="text-[13px] text-red-500 font-medium">{form.formState.errors.verification_token.message}</p>
-            )}
-          </div>
-          
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 mt-4">
-              <p className="text-sm font-medium text-red-600">{error}</p>
+  // ── Locked state ─────────────────────────────────────────────────────────────
+  if (isLocked) {
+    return (
+      <div className="w-full relative">
+        <motion.div variants={itemVariants}>
+          <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center space-y-6">
+            {/* Icon */}
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth={1.8}
+                stroke="currentColor"
+                className="w-6 h-6 text-red-500"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+                />
+              </svg>
             </div>
-          )}
 
-          <div className="pt-3">
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-[15px] rounded-xl font-medium"
-              disabled={mutation.isPending}
+            <div>
+              <p className="text-on-surface dark:text-zinc-100 font-semibold text-base">
+                Too many attempts
+              </p>
+              <p className="text-body-md text-gray-medium dark:text-zinc-400 mt-1 leading-relaxed">
+                This verification session has been locked after too many
+                incorrect attempts. Please return to login and try again.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              className="w-full h-10 text-[15px] rounded-xl font-medium"
+              onClick={() => {
+                if (sessionId)
+                  sessionStorage.removeItem(`verify_email_${sessionId}`);
+                router.push(`/auth/${sessionId}/login`);
+              }}
             >
-              {mutation.isPending && (
-                <Loader2 className="mr-2 h-[18px] w-[18px] animate-spin" />
-              )}
-              Verify Email
+              Back to login
             </Button>
           </div>
-        </form>
+        </motion.div>
       </div>
+    );
+  }
+
+  // ── Normal verify state ───────────────────────────────────────────────────────
+  return (
+    <div className="w-full relative">
+      <motion.div variants={itemVariants}>
+        <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
+          {/* Header */}
+          <div className="mb-7 text-center">
+            <h1 className="text-on-surface dark:text-zinc-100 font-semibold text-[18px] mb-1">
+              Check your email
+            </h1>
+            <p className="text-body-md text-gray-medium dark:text-zinc-400 leading-relaxed">
+              {email ? (
+                <>
+                  We sent a 6-digit code to{" "}
+                  <span className="text-on-surface dark:text-zinc-200 font-medium">
+                    {email}
+                  </span>
+                </>
+              ) : (
+                "We sent a 6-digit code to your email address."
+              )}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* OTP boxes */}
+            <OtpInput
+              value={otp}
+              onChange={setOtp}
+              disabled={verifyMutation.isPending || isLocked}
+              hasError={!!inlineError}
+            />
+
+            {/* Inline error */}
+            {inlineError && (
+              <p
+                role="alert"
+                className="text-center text-sm text-red-600 dark:text-red-400"
+              >
+                {inlineError}
+              </p>
+            )}
+
+            {/* Verify button */}
+            <div className="pt-1">
+              <Button
+                type="submit"
+                className="w-full h-11 text-[15px] rounded-xl font-medium"
+                isLoading={verifyMutation.isPending}
+                disabled={!canSubmit}
+              >
+                Verify email
+              </Button>
+            </div>
+          </form>
+
+          {/* Resend */}
+          <div className="mt-5 text-center">
+            {resendCountdown > 0 ? (
+              <p className="text-body-md text-gray-medium dark:text-zinc-500">
+                Resend code in{" "}
+                <span className="tabular-nums font-medium text-on-surface dark:text-zinc-300">
+                  {resendCountdown}s
+                </span>
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => resendMutation.mutate()}
+                disabled={!canResend}
+                className="text-body-md text-gray-medium dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-4 hover:underline"
+              >
+                {resendMutation.isPending ? "Sending…" : "Resend code"}
+              </button>
+            )}
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

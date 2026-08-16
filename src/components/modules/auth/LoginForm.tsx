@@ -44,7 +44,10 @@ export function LoginForm() {
       if (!session) return;
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
-      } else if (data.email_verification_required) {
+      } else if (
+        "email_verification_required" in data &&
+        data.email_verification_required
+      ) {
         // Store email in sessionStorage — never in the URL (session is a bearer token)
         sessionStorage.setItem(
           `verify_email_${session.session_id}`,

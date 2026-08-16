@@ -45,7 +45,8 @@ export function SignupForm() {
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
       } else if (
-        data.email_verification_required ||
+        ("email_verification_required" in data &&
+          data.email_verification_required) ||
         session.application.require_email_verification
       ) {
         // Store email in sessionStorage — never in the URL (session is a bearer token)
