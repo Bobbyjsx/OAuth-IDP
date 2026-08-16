@@ -1,4 +1,4 @@
-import { oauthApi } from "@/lib/api";
+import { authSessionQueryKeys, getSession } from "@/api";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 
@@ -7,8 +7,8 @@ export function useAuthSession() {
   const sessionId = params.session_id as string;
 
   const query = useQuery({
-    queryKey: ["auth-session", sessionId],
-    queryFn: () => oauthApi.getSession(sessionId),
+    queryKey: authSessionQueryKeys.detail(sessionId),
+    queryFn: () => getSession(sessionId),
     enabled: !!sessionId,
     retry: false,
     // Keep data fresh for 30s — avoids re-fetching on every mount within the

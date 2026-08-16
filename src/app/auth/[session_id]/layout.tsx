@@ -1,7 +1,7 @@
 import { AuthLayoutWrapper } from "@/components/modules/auth-layout-wrapper";
 import { ReactNode } from "react";
 import { Metadata } from "next";
-import { oauthApi } from "@/lib/api";
+import { getSession } from "@/api";
 
 type Props = {
   params: Promise<{ session_id: string }>;
@@ -10,7 +10,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { session_id } = await params;
   try {
-    const session = await oauthApi.getSession(session_id);
+    const session = await getSession(session_id);
     const { name, description, logo_url } = session.application;
     
     return {
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: logo_url ? [{ url: logo_url as string }] : undefined,
       },
     };
-  } catch (error) {
+  } catch {
     return {
       title: "Authentication",
       robots: {

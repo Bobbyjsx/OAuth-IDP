@@ -1,14 +1,14 @@
 "use client";
 
-import { oauthApi } from "@/lib/api";
+import { checkHealth, healthQueryKeys } from "@/api";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 
 export default function Home() {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["health"],
-    queryFn: oauthApi.checkHealth,
+    queryKey: healthQueryKeys.all,
+    queryFn: checkHealth,
     retry: 1,
     refetchInterval: 30000,
   });
