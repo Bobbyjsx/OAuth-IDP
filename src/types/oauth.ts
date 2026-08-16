@@ -1,3 +1,5 @@
+export type SupportedTheme = "light" | "dark";
+
 export interface PublicApplicationConfig {
   name: string;
   description?: string | null;
@@ -5,10 +7,19 @@ export interface PublicApplicationConfig {
   logo_with_text?: string | null;
   primary_color?: string | null;
   secondary_color?: string | null;
+  themes?: SupportedTheme[];
+  branding?: {
+    themes?: SupportedTheme[];
+    primary_color?: string | null;
+    secondary_color?: string | null;
+    logo_url?: string | null;
+    logo_with_text?: string | null;
+    [key: string]: unknown;
+  };
   allow_signup: boolean;
   allow_password_login: boolean;
   require_email_verification: boolean;
-  allowed_scopes: string[];
+  allowed_scopes?: string[];
 }
 
 export interface AuthSessionResponse {

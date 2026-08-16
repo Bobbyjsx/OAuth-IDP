@@ -10,7 +10,7 @@ export interface SessionEndedScreenProps {
   redirectUrl: string | null | undefined;
 }
 
-const REDIRECT_COUNTDOWN_SECONDS = 15;
+const REDIRECT_COUNTDOWN_SECONDS = 5;
 
 /**
  * Screen displayed when an authentication session is expired or cancelled.

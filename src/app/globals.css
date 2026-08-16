@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -11,8 +18,8 @@
   --color-gray-light: #f7f6f3;
   --color-gray-medium: #787774;
 
-  --color-background: #ffffff;
-  --color-surface: #ffffff;
+  --color-background: var(--background);
+  --color-surface: var(--background);
   --color-on-surface: #111111;
   --color-on-surface-variant: #5a5a57;
   --color-error: #eb5757;
@@ -53,13 +60,6 @@
   --color-secondary-900: var(--secondary-900);
   --color-secondary-950: var(--secondary-950);
   --color-secondary: var(--secondary-500);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

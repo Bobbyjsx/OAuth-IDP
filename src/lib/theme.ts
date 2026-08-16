@@ -1,3 +1,36 @@
+import type { SupportedTheme } from "@/types/oauth";
+
+/**
+ * Resolves the active theme based on the branding's supported themes and the user's OS setting.
+ *
+ * Rules:
+ * - If branding supports only 'light' -> returns 'light' (forces light even if OS is dark)
+ * - If branding supports only 'dark' -> returns 'dark' (forces dark even if OS is light)
+ * - If branding supports both or is omitted -> follows the user's system OS preference (isSystemDark ? 'dark' : 'light')
+ */
+export function resolveEffectiveTheme(
+  supportedThemes: SupportedTheme[] | undefined | null,
+  isSystemDark: boolean,
+): SupportedTheme {
+  const normalized =
+    Array.isArray(supportedThemes) && supportedThemes.length > 0
+      ? supportedThemes
+      : (["light", "dark"] as SupportedTheme[]);
+
+  const supportsDark = normalized.includes("dark");
+  const supportsLight = normalized.includes("light");
+
+  if (supportsDark && !supportsLight) {
+    return "dark";
+  }
+
+  if (supportsLight && !supportsDark) {
+    return "light";
+  }
+
+  return isSystemDark ? "dark" : "light";
+}
+
 /**
  * Utility to generate a full Tailwind color scale (50-950) from a single hex color.
  * Uses color-mix to blend the base color with white or black.

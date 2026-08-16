@@ -5,6 +5,7 @@ import { SessionEndedScreen } from "@/components/modules/auth/SessionEndedScreen
 import { ErrorState } from "@/components/ui/error-state";
 import { Logo } from "@/components/ui/logo";
 import { useAuthSession } from "@/hooks/use-auth-session";
+import { useThemeEnforcement } from "@/hooks/use-theme-enforcement";
 import { containerVariants, itemVariants } from "@/lib/motion";
 import { generateColorScale } from "@/lib/theme";
 import { motion } from "framer-motion";
@@ -22,6 +23,12 @@ const subtitleMap: Record<string, string> = {
 export function AuthLayoutWrapper({ children }: { children: ReactNode }) {
   const { session, isLoading, isError } = useAuthSession();
   const pathname = usePathname();
+
+  // Extract supported themes from application branding (e.g. ['light'], ['dark'], or ['light', 'dark'])
+  const supportedThemes = session?.application?.themes ?? session?.application?.branding?.themes;
+
+  // Enforce branding theme constraints with system fallback
+  useThemeEnforcement(supportedThemes);
 
   if (isLoading) {
     return <LoadingSkeleton />;
