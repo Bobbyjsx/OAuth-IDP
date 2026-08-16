@@ -19,16 +19,9 @@ export const metadata: Metadata = {
   description: "OAuth 2.0 Identity Provider",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-zinc-50">
         <Providers>{children}</Providers>
         <Toaster closeButton richColors position="bottom-right" />

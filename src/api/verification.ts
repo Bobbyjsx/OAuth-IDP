@@ -1,10 +1,6 @@
 import { api } from "@/lib/axios";
 import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
-import {
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 import { authSessionQueryKeys } from "./auth-session";
 
 export type VerificationResponse = OAuthRedirectResponse | OAuthFlowResponse;
@@ -20,9 +16,7 @@ export async function verifyEmail(
   return data;
 }
 
-export async function resendOtp(
-  sessionId: string,
-): Promise<{ detail: string }> {
+export async function resendOtp(sessionId: string): Promise<{ detail: string }> {
   const { data } = await api.post<{ detail: string }>(
     `/api/v1/auth-sessions/${sessionId}/resend-otp`,
   );
@@ -37,8 +31,7 @@ export function useVerifyEmail(
 
   return useMutation({
     ...options,
-    mutationFn: (verificationToken: string) =>
-      verifyEmail(sessionId, verificationToken),
+    mutationFn: (verificationToken: string) => verifyEmail(sessionId, verificationToken),
     onSettled: (...args) => {
       if (sessionId) {
         queryClient.invalidateQueries({

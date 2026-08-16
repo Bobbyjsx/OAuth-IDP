@@ -23,14 +23,8 @@ const PasswordInput = React.forwardRef<HTMLInputElement, InputProps>(
             className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 focus:outline-none transition-colors"
             tabIndex={-1}
           >
-            {showPassword ? (
-              <EyeOff className="h-5 w-5" />
-            ) : (
-              <Eye className="h-5 w-5" />
-            )}
-            <span className="sr-only">
-              {showPassword ? "Hide password" : "Show password"}
-            </span>
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
           </button>
         }
       />

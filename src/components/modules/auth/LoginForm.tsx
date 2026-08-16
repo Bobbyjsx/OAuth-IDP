@@ -32,37 +32,23 @@ export function LoginForm() {
     },
   });
 
-  const { mutate: performLogin, isPending } = useLogin<LoginValues>(
-    session?.session_id ?? "",
-    {
-      onSuccess: (data) => {
-        if (!session) return;
-        if (data.redirect_url) {
-          window.location.href = data.redirect_url;
-        } else if (
-          "email_verification_required" in data &&
-          data.email_verification_required
-        ) {
-          // Store email in sessionStorage — never in the URL (session is a bearer token)
-          sessionStorage.setItem(
-            `verify_email_${session.session_id}`,
-            form.getValues("email"),
-          );
-          window.location.href = `/auth/${session.session_id}/verify-email`;
-        } else {
-          toast.error("An unexpected response was received.");
-        }
-      },
-      onError: (err: unknown) => {
-        toast.error(
-          getServerError(
-            err,
-            "Failed to sign in. Please check your credentials.",
-          ),
-        );
-      },
+  const { mutate: performLogin, isPending } = useLogin<LoginValues>(session?.session_id ?? "", {
+    onSuccess: (data) => {
+      if (!session) return;
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else if ("email_verification_required" in data && data.email_verification_required) {
+        // Store email in sessionStorage — never in the URL (session is a bearer token)
+        sessionStorage.setItem(`verify_email_${session.session_id}`, form.getValues("email"));
+        window.location.href = `/auth/${session.session_id}/verify-email`;
+      } else {
+        toast.error("An unexpected response was received.");
+      }
     },
-  );
+    onError: (err: unknown) => {
+      toast.error(getServerError(err, "Failed to sign in. Please check your credentials."));
+    },
+  });
 
   const onSubmit = (values: LoginValues) => {
     performLogin(values);
@@ -132,10 +118,7 @@ export function LoginForm() {
       )}
 
       <motion.div variants={itemVariants} className="mt-6 flex justify-center">
-        <CancelButton
-          sessionId={session.session_id}
-          appName={session.application.name}
-        />
+        <CancelButton sessionId={session.session_id} appName={session.application.name} />
       </motion.div>
     </div>
   );

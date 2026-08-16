@@ -51,10 +51,7 @@ export function ResetPasswordForm() {
     },
     onError: (err: unknown) => {
       toast.error(
-        getServerError(
-          err,
-          "Failed to reset password. The link might be expired or invalid.",
-        ),
+        getServerError(err, "Failed to reset password. The link might be expired or invalid."),
       );
     },
   });

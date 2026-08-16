@@ -46,8 +46,5 @@ export function getApiErrorCode(err: unknown): ApiErrorCode | null {
  * and the UI should transition to the expired/cancelled screen.
  */
 export function isSessionEndedError(code: ApiErrorCode | null): boolean {
-  return (
-    code === ApiErrorCode.SessionExpired ||
-    code === ApiErrorCode.SessionCancelled
-  );
+  return code === ApiErrorCode.SessionExpired || code === ApiErrorCode.SessionCancelled;
 }

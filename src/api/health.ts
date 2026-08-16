@@ -11,10 +11,7 @@ export async function checkHealth(): Promise<{ status: string } | unknown> {
 }
 
 export function useHealth(
-  options?: Omit<
-    UseQueryOptions<{ status: string } | unknown, Error>,
-    "queryKey" | "queryFn"
-  >,
+  options?: Omit<UseQueryOptions<{ status: string } | unknown, Error>, "queryKey" | "queryFn">,
 ) {
   return useQuery({
     queryKey: healthQueryKeys.all,

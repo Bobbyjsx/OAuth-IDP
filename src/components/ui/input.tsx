@@ -40,14 +40,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {suffix && (
-            <div className="absolute right-0 top-0 h-full flex items-center pr-3">
-              {suffix}
-            </div>
+            <div className="absolute right-0 top-0 h-full flex items-center pr-3">{suffix}</div>
           )}
         </div>
-        {error && (
-          <p className="text-[13px] text-red-500 font-medium">{error}</p>
-        )}
+        {error && <p className="text-[13px] text-red-500 font-medium">{error}</p>}
       </div>
     );
   },

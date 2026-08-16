@@ -1,10 +1,4 @@
-export function ErrorState({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+export function ErrorState({ title, message }: { title: string; message: string }) {
   return (
     <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-left">
       <div className="mb-6 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800/60 pb-4">
@@ -18,9 +12,7 @@ export function ErrorState({
         {title}
       </h2>
 
-      <p className="text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        {message}
-      </p>
+      <p className="text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">{message}</p>
     </div>
   );
 }

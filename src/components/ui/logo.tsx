@@ -37,20 +37,12 @@ export function Logo({
 
   return (
     <div className={cn("flex items-center gap-2.5", className)} {...props}>
-      <div
-        className={cn(
-          "flex shrink-0 items-center justify-center",
-          iconContainerClassName,
-        )}
-      >
+      <div className={cn("flex shrink-0 items-center justify-center", iconContainerClassName)}>
         {session.application.logo_url ? (
           <img
             src={session.application.logo_url}
             alt={`${session.application.name} icon`}
-            className={cn(
-              "h-8 w-auto object-contain text-on-surface",
-              iconClassName,
-            )}
+            className={cn("h-8 w-auto object-contain text-on-surface", iconClassName)}
           />
         ) : (
           <div

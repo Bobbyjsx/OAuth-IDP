@@ -1,22 +1,14 @@
 import { api } from "@/lib/axios";
 import type { AuthSessionResponse } from "@/types/oauth";
-import {
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 
 export const authSessionQueryKeys = {
   all: ["auth-session"] as const,
   detail: (sessionId: string) => ["auth-session", sessionId] as const,
 };
 
-export async function getSession(
-  sessionId: string,
-): Promise<AuthSessionResponse> {
-  const { data } = await api.get<AuthSessionResponse>(
-    `/api/v1/auth-sessions/${sessionId}`,
-  );
+export async function getSession(sessionId: string): Promise<AuthSessionResponse> {
+  const { data } = await api.get<AuthSessionResponse>(`/api/v1/auth-sessions/${sessionId}`);
   return data;
 }
 
@@ -26,9 +18,7 @@ export type CancelSessionResponse = {
   redirect_url: string;
 };
 
-export async function cancelSession(
-  sessionId: string,
-): Promise<CancelSessionResponse> {
+export async function cancelSession(sessionId: string): Promise<CancelSessionResponse> {
   const { data } = await api.post<CancelSessionResponse>(
     `/api/v1/auth-sessions/${sessionId}/cancel`,
   );

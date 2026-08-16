@@ -37,9 +37,7 @@ export function VerifyEmailForm() {
   const [isLocked, setIsLocked] = useState(false);
 
   // Resend countdown — initialized to cooldown so the timer starts on mount
-  const [resendCountdown, setResendCountdown] = useState(
-    RESEND_COOLDOWN_SECONDS,
-  );
+  const [resendCountdown, setResendCountdown] = useState(RESEND_COOLDOWN_SECONDS);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /** Resets and restarts the resend cooldown timer. */
@@ -89,9 +87,7 @@ export function VerifyEmailForm() {
         if (isSessionEndedError(code)) {
           if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
         } else {
-          toast.error(
-            getServerError(err, "Failed to resend code. Please try again."),
-          );
+          toast.error(getServerError(err, "Failed to resend code. Please try again."));
         }
       },
     },
@@ -113,8 +109,7 @@ export function VerifyEmailForm() {
         const code = getApiErrorCode(err);
 
         if (code === ApiErrorCode.InvalidVerificationToken) {
-          const remaining =
-            attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
+          const remaining = attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
           setAttemptsLeft(remaining);
           setInlineError(
             remaining > 0
@@ -124,9 +119,7 @@ export function VerifyEmailForm() {
           setOtp("");
         } else if (code === ApiErrorCode.OtpAttemptsExceeded) {
           setIsLocked(true);
-          setInlineError(
-            "Too many incorrect attempts. Please start a new login.",
-          );
+          setInlineError("Too many incorrect attempts. Please start a new login.");
         } else if (code === ApiErrorCode.VerificationTokenExpired) {
           setInlineError("Your code has expired. Request a new one below.");
           setOtp("");
@@ -137,9 +130,7 @@ export function VerifyEmailForm() {
         } else if (isSessionEndedError(code)) {
           if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
         } else {
-          setInlineError(
-            getServerError(err, "Failed to verify email. Please try again."),
-          );
+          setInlineError(getServerError(err, "Failed to verify email. Please try again."));
         }
       },
     },
@@ -186,16 +177,13 @@ export function VerifyEmailForm() {
                 Too many attempts
               </p>
               <p className="text-body-md text-gray-medium dark:text-zinc-400 mt-1 leading-relaxed">
-                This verification session has been locked after too many
-                incorrect attempts. Please return to login and try again.
+                This verification session has been locked after too many incorrect attempts. Please
+                return to login and try again.
               </p>
             </div>
 
             <div className="pt-2 flex justify-center">
-              <CancelButton
-                sessionId={session.session_id}
-                appName={session.application.name}
-              />
+              <CancelButton sessionId={session.session_id} appName={session.application.name} />
             </div>
           </div>
         </motion.div>
@@ -217,9 +205,7 @@ export function VerifyEmailForm() {
               {email ? (
                 <>
                   We sent a 6-digit code to{" "}
-                  <span className="text-on-surface dark:text-zinc-200 font-medium">
-                    {email}
-                  </span>
+                  <span className="text-on-surface dark:text-zinc-200 font-medium">{email}</span>
                 </>
               ) : (
                 "We sent a 6-digit code to your email address."
@@ -238,10 +224,7 @@ export function VerifyEmailForm() {
 
             {/* Inline error */}
             {inlineError && (
-              <p
-                role="alert"
-                className="text-center text-sm text-red-600 dark:text-red-400"
-              >
+              <p role="alert" className="text-center text-sm text-red-600 dark:text-red-400">
                 {inlineError}
               </p>
             )}
@@ -282,10 +265,7 @@ export function VerifyEmailForm() {
 
           {/* Cancel */}
           <div className="mt-4 flex justify-center">
-            <CancelButton
-              sessionId={session.session_id}
-              appName={session.application.name}
-            />
+            <CancelButton sessionId={session.session_id} appName={session.application.name} />
           </div>
         </div>
       </motion.div>

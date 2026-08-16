@@ -18,8 +18,7 @@
   --color-error: #eb5757;
 
   /* Typography */
-  --font-geist:
-    "Geist", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  --font-geist: "Geist", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
   --font-headline-md: var(--font-geist);
   --font-body-md: var(--font-geist);
   --text-headline-md: 1.25rem;

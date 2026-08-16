@@ -48,10 +48,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function AuthSessionLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default async function AuthSessionLayout({ children }: { children: ReactNode }) {
   return <AuthLayoutWrapper>{children}</AuthLayoutWrapper>;
 }

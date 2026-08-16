@@ -30,20 +30,15 @@ export function ForgotPasswordForm() {
     },
   });
 
-  const { mutate: performSendReset, isPending } = useForgotPassword(
-    session?.session_id ?? "",
-    {
-      onSuccess: () => {
-        setSuccess(true);
-        toast.success("Password reset link sent!");
-      },
-      onError: (err: unknown) => {
-        toast.error(
-          getServerError(err, "Failed to process request. Please try again."),
-        );
-      },
+  const { mutate: performSendReset, isPending } = useForgotPassword(session?.session_id ?? "", {
+    onSuccess: () => {
+      setSuccess(true);
+      toast.success("Password reset link sent!");
     },
-  );
+    onError: (err: unknown) => {
+      toast.error(getServerError(err, "Failed to process request. Please try again."));
+    },
+  });
 
   if (!session) return null;
 

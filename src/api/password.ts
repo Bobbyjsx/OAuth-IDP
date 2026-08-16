@@ -1,16 +1,9 @@
 import { api } from "@/lib/axios";
 import type { OAuthFlowResponse } from "@/types/oauth";
-import {
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 import { authSessionQueryKeys } from "./auth-session";
 
-export async function forgotPassword(
-  sessionId: string,
-  email: string,
-): Promise<OAuthFlowResponse> {
+export async function forgotPassword(sessionId: string, email: string): Promise<OAuthFlowResponse> {
   const { data } = await api.post<OAuthFlowResponse>(
     `/api/v1/auth-sessions/${sessionId}/forgot-password`,
     { email },

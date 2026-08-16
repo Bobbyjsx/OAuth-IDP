@@ -28,14 +28,8 @@ interface SessionEndedScreenProps {
   redirectUrl: string | null | undefined;
 }
 
-function SessionEndedScreen({
-  status,
-  appName,
-  redirectUrl,
-}: SessionEndedScreenProps) {
-  const [countdown, setCountdown] = useState(
-    redirectUrl ? REDIRECT_COUNTDOWN : 0,
-  );
+function SessionEndedScreen({ status, appName, redirectUrl }: SessionEndedScreenProps) {
+  const [countdown, setCountdown] = useState(redirectUrl ? REDIRECT_COUNTDOWN : 0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -58,10 +52,7 @@ function SessionEndedScreen({
     };
   }, [redirectUrl]);
 
-  const heading =
-    status === "expired"
-      ? "Your session has timed out"
-      : "Authentication cancelled";
+  const heading = status === "expired" ? "Your session has timed out" : "Authentication cancelled";
 
   const body =
     status === "expired"
@@ -90,9 +81,7 @@ function SessionEndedScreen({
         </div>
 
         <div>
-          <p className="text-on-surface dark:text-zinc-100 font-semibold text-base">
-            {heading}
-          </p>
+          <p className="text-on-surface dark:text-zinc-100 font-semibold text-base">{heading}</p>
           <p className="text-body-md text-gray-medium dark:text-zinc-400 mt-1 leading-relaxed">
             {body}
           </p>
@@ -164,13 +153,11 @@ export function AuthLayoutWrapper({ children }: { children: ReactNode }) {
   } as React.CSSProperties;
 
   const currentView = pathname.split("/").pop();
-  const subtitle =
-    (currentView && subtitleMap[currentView]) ?? "Continue to your workspace.";
+  const subtitle = (currentView && subtitleMap[currentView]) ?? "Continue to your workspace.";
 
   const validSessions = ["pending", "authenticated"];
   const isSessionValid = validSessions.includes(session.status);
-  const isSessionEnded =
-    session.status === "expired" || session.status === "cancelled";
+  const isSessionEnded = session.status === "expired" || session.status === "cancelled";
 
   return (
     <div

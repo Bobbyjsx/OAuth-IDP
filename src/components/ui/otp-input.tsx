@@ -41,10 +41,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
     }
   }, [disabled]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    idx: number,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
     const raw = e.target.value.replace(/[^0-9]/g, "");
     if (!raw) return;
     const chars = raw.split("");
@@ -59,10 +56,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
     inputsRef.current[nextIdx]?.focus();
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    idx: number,
-  ) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
     if (e.key === "Backspace") {
       if (value[idx]) {
         const arr = value.split("");
@@ -100,11 +94,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   };
 
   return (
-    <div
-      className="flex gap-2 sm:gap-3 justify-center"
-      role="group"
-      aria-label="Verification code"
-    >
+    <div className="flex gap-2 sm:gap-3 justify-center" role="group" aria-label="Verification code">
       {Array.from({ length }).map((_, i) => (
         <input
           key={i}
@@ -129,9 +119,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             "rounded-xl border bg-white dark:bg-zinc-900",
             "transition-all duration-150",
             !hasError && "border-[rgba(0,0,0,0.10)] dark:border-zinc-700",
-            !hasError &&
-              value[i] &&
-              "border-[rgba(0,0,0,0.20)] dark:border-zinc-500",
+            !hasError && value[i] && "border-[rgba(0,0,0,0.20)] dark:border-zinc-500",
             !hasError &&
               "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
             hasError &&

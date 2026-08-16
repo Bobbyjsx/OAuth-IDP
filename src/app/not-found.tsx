@@ -20,9 +20,8 @@ export default function NotFound() {
         </h1>
 
         <p className="text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400 mb-8">
-          The requested route or authentication session could not be located.
-          Ensure the URL is correct or restart your request from the original
-          application.
+          The requested route or authentication session could not be located. Ensure the URL is
+          correct or restart your request from the original application.
         </p>
 
         <Link
