@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ErrorState } from "../ui/error-state";
 
-const REDIRECT_COUNTDOWN = 5;
+const REDIRECT_COUNTDOWN = 15;
 
 const subtitleMap: Record<string, string> = {
   login: "Sign in to continue to your workspace.",

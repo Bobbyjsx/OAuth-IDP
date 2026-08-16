@@ -11,29 +11,29 @@ export type AuthResponse = OAuthRedirectResponse | OAuthFlowResponse;
 
 export async function login(
   sessionId: string,
-  credentials: Record<string, string>
+  credentials: Record<string, string>,
 ): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>(
     `/api/v1/auth-sessions/${sessionId}/login`,
-    credentials
+    credentials,
   );
   return data;
 }
 
 export async function signup(
   sessionId: string,
-  credentials: Record<string, string>
+  credentials: Record<string, string>,
 ): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>(
     `/api/v1/auth-sessions/${sessionId}/signup`,
-    credentials
+    credentials,
   );
   return data;
 }
 
 export function useLogin<TVariables = Record<string, string>>(
   sessionId: string,
-  options?: UseMutationOptions<AuthResponse, Error, TVariables>
+  options?: UseMutationOptions<AuthResponse, Error, TVariables>,
 ) {
   const queryClient = useQueryClient();
 
@@ -54,7 +54,7 @@ export function useLogin<TVariables = Record<string, string>>(
 
 export function useSignup<TVariables = Record<string, string>>(
   sessionId: string,
-  options?: UseMutationOptions<AuthResponse, Error, TVariables>
+  options?: UseMutationOptions<AuthResponse, Error, TVariables>,
 ) {
   const queryClient = useQueryClient();
 

@@ -9,29 +9,29 @@ import { authSessionQueryKeys } from "./auth-session";
 
 export async function forgotPassword(
   sessionId: string,
-  email: string
+  email: string,
 ): Promise<OAuthFlowResponse> {
   const { data } = await api.post<OAuthFlowResponse>(
     `/api/v1/auth-sessions/${sessionId}/forgot-password`,
-    { email }
+    { email },
   );
   return data;
 }
 
 export async function resetPassword(
   sessionId: string,
-  credentials: Record<string, string>
+  credentials: Record<string, string>,
 ): Promise<OAuthFlowResponse> {
   const { data } = await api.post<OAuthFlowResponse>(
     `/api/v1/auth-sessions/${sessionId}/reset-password`,
-    credentials
+    credentials,
   );
   return data;
 }
 
 export function useForgotPassword(
   sessionId: string,
-  options?: UseMutationOptions<OAuthFlowResponse, Error, string>
+  options?: UseMutationOptions<OAuthFlowResponse, Error, string>,
 ) {
   const queryClient = useQueryClient();
 
@@ -51,7 +51,7 @@ export function useForgotPassword(
 
 export function useResetPassword<TVariables = Record<string, string>>(
   sessionId: string,
-  options?: UseMutationOptions<OAuthFlowResponse, Error, TVariables>
+  options?: UseMutationOptions<OAuthFlowResponse, Error, TVariables>,
 ) {
   const queryClient = useQueryClient();
 

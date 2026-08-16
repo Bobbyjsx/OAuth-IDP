@@ -13,7 +13,7 @@ export interface PublicApplicationConfig {
 
 export interface AuthSessionResponse {
   session_id: string;
-  status: 'pending' | 'authenticated' | 'completed' | 'cancelled' | 'expired';
+  status: "pending" | "authenticated" | "completed" | "cancelled" | "expired";
   application: PublicApplicationConfig;
   scopes: string[];
   /** Present when status is 'expired' or 'cancelled' — RFC-compliant callback URL to return the user to their app. */

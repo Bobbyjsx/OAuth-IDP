@@ -140,10 +140,7 @@ export function SignupForm() {
         </Link>
       </motion.p>
 
-      <motion.div
-        variants={itemVariants}
-        className="mt-6 flex justify-center"
-      >
+      <motion.div variants={itemVariants} className="mt-6 flex justify-center">
         <CancelButton
           sessionId={session.session_id}
           appName={session.application.name}

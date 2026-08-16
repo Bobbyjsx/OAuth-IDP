@@ -7,18 +7,18 @@ import axios from "axios";
  */
 export enum ApiErrorCode {
   // ── Session lifecycle ──────────────────────────────────────────────────────
-  SessionExpired   = "session_expired",
+  SessionExpired = "session_expired",
   SessionCancelled = "session_cancelled",
 
   // ── Authentication ─────────────────────────────────────────────────────────
   InvalidCredentials = "invalid_credentials",
-  AccountLocked      = "account_locked",
-  AccountDisabled    = "account_disabled",
+  AccountLocked = "account_locked",
+  AccountDisabled = "account_disabled",
 
   // ── Email verification ─────────────────────────────────────────────────────
   InvalidVerificationToken = "invalid_verification_token",
   VerificationTokenExpired = "verification_token_expired",
-  OtpAttemptsExceeded      = "otp_attempts_exceeded",
+  OtpAttemptsExceeded = "otp_attempts_exceeded",
 
   // ── Password reset ─────────────────────────────────────────────────────────
   InvalidResetToken = "invalid_reset_token",
@@ -26,8 +26,8 @@ export enum ApiErrorCode {
 
   // ── General ────────────────────────────────────────────────────────────────
   AccessDenied = "access_denied",
-  NotFound     = "not_found",
-  ServerError  = "server_error",
+  NotFound = "not_found",
+  ServerError = "server_error",
 }
 
 /**

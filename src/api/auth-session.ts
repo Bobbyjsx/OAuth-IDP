@@ -11,9 +11,11 @@ export const authSessionQueryKeys = {
   detail: (sessionId: string) => ["auth-session", sessionId] as const,
 };
 
-export async function getSession(sessionId: string): Promise<AuthSessionResponse> {
+export async function getSession(
+  sessionId: string,
+): Promise<AuthSessionResponse> {
   const { data } = await api.get<AuthSessionResponse>(
-    `/api/v1/auth-sessions/${sessionId}`
+    `/api/v1/auth-sessions/${sessionId}`,
   );
   return data;
 }
@@ -24,16 +26,18 @@ export type CancelSessionResponse = {
   redirect_url: string;
 };
 
-export async function cancelSession(sessionId: string): Promise<CancelSessionResponse> {
+export async function cancelSession(
+  sessionId: string,
+): Promise<CancelSessionResponse> {
   const { data } = await api.post<CancelSessionResponse>(
-    `/api/v1/auth-sessions/${sessionId}/cancel`
+    `/api/v1/auth-sessions/${sessionId}/cancel`,
   );
   return data;
 }
 
 export function useCancelSession(
   sessionId: string,
-  options?: UseMutationOptions<CancelSessionResponse, Error, void>
+  options?: UseMutationOptions<CancelSessionResponse, Error, void>,
 ) {
   const queryClient = useQueryClient();
 

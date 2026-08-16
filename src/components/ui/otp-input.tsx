@@ -53,10 +53,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
       const pos = idx + i;
       if (pos < length) arr[pos] = char;
     });
-    const next = arr
-      .slice(0, length)
-      .join("")
-      .replace(/ /g, "");
+    const next = arr.slice(0, length).join("").replace(/ /g, "");
     onChange(next);
     const nextIdx = Math.min(idx + chars.length, length - 1);
     inputsRef.current[nextIdx]?.focus();
@@ -111,7 +108,9 @@ export const OtpInput: React.FC<OtpInputProps> = ({
       {Array.from({ length }).map((_, i) => (
         <input
           key={i}
-          ref={(el) => { inputsRef.current[i] = el; }}
+          ref={(el) => {
+            inputsRef.current[i] = el;
+          }}
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
@@ -130,9 +129,13 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             "rounded-xl border bg-white dark:bg-zinc-900",
             "transition-all duration-150",
             !hasError && "border-[rgba(0,0,0,0.10)] dark:border-zinc-700",
-            !hasError && value[i] && "border-[rgba(0,0,0,0.20)] dark:border-zinc-500",
-            !hasError && "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
-            hasError && "border-red-400 dark:border-red-500 ring-1 ring-red-400 dark:ring-red-500 focus:outline-none",
+            !hasError &&
+              value[i] &&
+              "border-[rgba(0,0,0,0.20)] dark:border-zinc-500",
+            !hasError &&
+              "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
+            hasError &&
+              "border-red-400 dark:border-red-500 ring-1 ring-red-400 dark:ring-red-500 focus:outline-none",
             disabled && "opacity-40 cursor-not-allowed",
           )}
         />

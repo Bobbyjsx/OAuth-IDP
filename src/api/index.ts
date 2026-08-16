@@ -4,7 +4,11 @@ export * from "./verification";
 export * from "./password";
 export * from "./health";
 export { getServerError } from "@/lib/axios";
-export { ApiErrorCode, getApiErrorCode, isSessionEndedError } from "@/lib/api-error";
+export {
+  ApiErrorCode,
+  getApiErrorCode,
+  isSessionEndedError,
+} from "@/lib/api-error";
 
 import * as authSession from "./auth-session";
 import * as auth from "./auth";

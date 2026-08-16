@@ -37,7 +37,9 @@ export function VerifyEmailForm() {
   const [isLocked, setIsLocked] = useState(false);
 
   // Resend countdown — initialized to cooldown so the timer starts on mount
-  const [resendCountdown, setResendCountdown] = useState(RESEND_COOLDOWN_SECONDS);
+  const [resendCountdown, setResendCountdown] = useState(
+    RESEND_COOLDOWN_SECONDS,
+  );
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /** Resets and restarts the resend cooldown timer. */
@@ -103,8 +105,7 @@ export function VerifyEmailForm() {
         if (data.redirect_url) {
           toast.success("Email verified successfully!");
           // Clean up stored email before leaving
-          if (sessionId)
-            sessionStorage.removeItem(`verify_email_${sessionId}`);
+          if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
           window.location.href = data.redirect_url;
         }
       },
@@ -127,9 +128,7 @@ export function VerifyEmailForm() {
             "Too many incorrect attempts. Please start a new login.",
           );
         } else if (code === ApiErrorCode.VerificationTokenExpired) {
-          setInlineError(
-            "Your code has expired. Request a new one below.",
-          );
+          setInlineError("Your code has expired. Request a new one below.");
           setOtp("");
           // Auto-trigger resend if cooldown is done
           if (resendCountdown === 0) {

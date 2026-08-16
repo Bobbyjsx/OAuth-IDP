@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const session = await getSession(session_id);
     const { name, description, logo_url } = session.application;
-    
+
     return {
       title: name
         ? {
@@ -53,9 +53,5 @@ export default async function AuthSessionLayout({
 }: {
   children: ReactNode;
 }) {
-  return (
-    <AuthLayoutWrapper>
-      {children}
-    </AuthLayoutWrapper>
-  );
+  return <AuthLayoutWrapper>{children}</AuthLayoutWrapper>;
 }

@@ -2,11 +2,14 @@
  * Utility to generate a full Tailwind color scale (50-950) from a single hex color.
  * Uses color-mix to blend the base color with white or black.
  */
-export function generateColorScale(baseColorHex: string, prefix: string = 'primary'): React.CSSProperties {
+export function generateColorScale(
+  baseColorHex: string,
+  prefix: string = "primary",
+): React.CSSProperties {
   // We assume baseColorHex is a valid hex color like #3b82f6
   // Tailwind's 500 is typically the base color.
   // We blend with white for lighter shades (50-400) and black for darker shades (600-950).
-  
+
   return {
     [`--${prefix}-50`]: `color-mix(in oklab, ${baseColorHex} 10%, white)`,
     [`--${prefix}-100`]: `color-mix(in oklab, ${baseColorHex} 20%, white)`,
