@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "preview": "CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
-    "upload": "CLOUDFLARE=1 opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf:build": "CLOUDFLARE=1 opennextjs-cloudflare build",
+    "cf:preview": "CLOUDFLARE=1 opennextjs-cloudflare preview",
+    "cf:deploy": "CLOUDFLARE=1 opennextjs-cloudflare deploy -- --keep-vars",
+    "cf:upload": "CLOUDFLARE=1 opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts",
     "start": "next start",
     "lint": "eslint",
