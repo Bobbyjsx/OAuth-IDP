@@ -5,6 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cf:build": "CLOUDFLARE=1 opennextjs-cloudflare build",
+    "cf:preview": "CLOUDFLARE=1 opennextjs-cloudflare preview",
+    "cf:deploy": "CLOUDFLARE=1 opennextjs-cloudflare deploy -- --keep-vars",
+    "cf:upload": "CLOUDFLARE=1 opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv --include-runtime false cloudflare-env.d.ts",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix && prettier --write .",
@@ -14,6 +19,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.0",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tanstack/react-query": "^5.101.4",
     "axios": "^1.19.0",
     "clsx": "^2.1.1",
@@ -39,7 +45,8 @@
     "lint-staged": "^17.3.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.123.0"
   },
   "packageManager": "pnpm@9.15.9",
   "lint-staged": {
@@ -49,6 +56,14 @@
     ],
     "*.{json,css,md,html,yml,yaml,mjs}": [
       "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd",
+      "sharp",
+      "unrs-resolver"
     ]
   }
 }

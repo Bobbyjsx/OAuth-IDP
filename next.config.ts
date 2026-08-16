@@ -1,9 +1,17 @@
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
+const isCloudflareBuild = process.env.CLOUDFLARE === "1";
+
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  poweredByHeader: false,
+  compress: true,
+  env: {
+    CLOUDFLARE: process.env.CLOUDFLARE ?? "",
+  },
   images: {
+    unoptimized: isCloudflareBuild,
     remotePatterns: [
       {
         protocol: "https",
@@ -13,7 +21,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "@tanstack/react-query", "sonner"],
+  },
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
-// https://storage.googleapis.com/bobs-public-store/cognito-logo-icon.svg"
+
+initOpenNextCloudflareForDev();
