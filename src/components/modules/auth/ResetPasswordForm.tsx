@@ -3,16 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { getServerError, oauthApi } from "@/lib/api";
+import { authSessionQueryKeys, getServerError, resetPassword } from "@/api";
+import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-
-import { useMutation } from "@tanstack/react-query";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 const resetPasswordSchema = z
   .object({
@@ -26,11 +27,9 @@ const resetPasswordSchema = z
 
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-import { itemVariants } from "@/lib/motion";
-import { motion } from "framer-motion";
-
 export function ResetPasswordForm() {
   const { session } = useAuthSession();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -46,7 +45,7 @@ export function ResetPasswordForm() {
 
   const mutation = useMutation({
     mutationFn: (values: ResetPasswordValues) =>
-      oauthApi.resetPassword(session?.session_id || "", {
+      resetPassword(session?.session_id || "", {
         reset_token: token || "",
         new_password: values.new_password,
       }),
@@ -61,6 +60,13 @@ export function ResetPasswordForm() {
           "Failed to reset password. The link might be expired or invalid.",
         ),
       );
+    },
+    onSettled: () => {
+      if (session?.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: authSessionQueryKeys.detail(session.session_id),
+        });
+      }
     },
   });
 

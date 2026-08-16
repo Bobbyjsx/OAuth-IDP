@@ -4,32 +4,28 @@ import { CancelButton } from "@/components/modules/auth/CancelButton";
 import { OtpInput } from "@/components/ui/otp-input";
 import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { getServerError, oauthApi } from "@/lib/api";
-import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
+import {
+  ApiErrorCode,
+  authSessionQueryKeys,
+  getApiErrorCode,
+  getServerError,
+  isSessionEndedError,
+  resendOtp,
+  verifyEmail,
+} from "@/api";
 import { itemVariants } from "@/lib/motion";
+import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { motion } from "framer-motion";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 const MAX_ATTEMPTS = 5;
 
-// Error codes from the Identity Service
-const ERROR_INVALID_TOKEN = "invalid_verification_token";
-const ERROR_ATTEMPTS_EXCEEDED = "otp_attempts_exceeded";
-const ERROR_TOKEN_EXPIRED = "verification_token_expired";
-const ERROR_SESSION_EXPIRED = "session_expired";
-const ERROR_SESSION_CANCELLED = "session_cancelled";
-
-function getApiErrorCode(err: unknown): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = (err as any)?.response?.data;
-  return data?.error ?? null;
-}
-
 export function VerifyEmailForm() {
-  const { session, sessionId, refetch } = useAuthSession();
+  const { session, sessionId } = useAuthSession();
+  const queryClient = useQueryClient();
 
   // Read email stored by Login/SignupForm in sessionStorage — never from the URL.
   // Lazy initializer runs once synchronously, no effect needed.
@@ -83,7 +79,7 @@ export function VerifyEmailForm() {
   const verifyMutation = useMutation({
     mutationFn: (token: string) =>
       session
-        ? oauthApi.verifyEmail(session.session_id, token)
+        ? verifyEmail(session.session_id, token)
         : Promise.reject(new Error("No session")),
     onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
       if (data.redirect_url) {
@@ -97,7 +93,7 @@ export function VerifyEmailForm() {
     onError: (err: unknown) => {
       const code = getApiErrorCode(err);
 
-      if (code === ERROR_INVALID_TOKEN) {
+      if (code === ApiErrorCode.InvalidVerificationToken) {
         const remaining =
           attemptsLeft !== null ? attemptsLeft - 1 : MAX_ATTEMPTS - 1;
         setAttemptsLeft(remaining);
@@ -107,12 +103,12 @@ export function VerifyEmailForm() {
             : "Incorrect code.",
         );
         setOtp("");
-      } else if (code === ERROR_ATTEMPTS_EXCEEDED) {
+      } else if (code === ApiErrorCode.OtpAttemptsExceeded) {
         setIsLocked(true);
         setInlineError(
           "Too many incorrect attempts. Please start a new login.",
         );
-      } else if (code === ERROR_TOKEN_EXPIRED) {
+      } else if (code === ApiErrorCode.VerificationTokenExpired) {
         setInlineError(
           "Your code has expired. Request a new one below.",
         );
@@ -121,17 +117,19 @@ export function VerifyEmailForm() {
         if (resendCountdown === 0) {
           resendMutation.mutate();
         }
-      } else if (
-        code === ERROR_SESSION_EXPIRED ||
-        code === ERROR_SESSION_CANCELLED
-      ) {
+      } else if (isSessionEndedError(code)) {
         if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
-        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
-        refetch();
       } else {
         setInlineError(
           getServerError(err, "Failed to verify email. Please try again."),
         );
+      }
+    },
+    onSettled: () => {
+      if (session?.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: authSessionQueryKeys.detail(session.session_id),
+        });
       }
     },
   });
@@ -140,7 +138,7 @@ export function VerifyEmailForm() {
   const resendMutation = useMutation({
     mutationFn: () =>
       session
-        ? oauthApi.resendOtp(session.session_id)
+        ? resendOtp(session.session_id)
         : Promise.reject(new Error("No session")),
     onSuccess: () => {
       toast.success("A new code has been sent to your email.");
@@ -151,17 +149,19 @@ export function VerifyEmailForm() {
     },
     onError: (err: unknown) => {
       const code = getApiErrorCode(err);
-      if (
-        code === ERROR_SESSION_EXPIRED ||
-        code === ERROR_SESSION_CANCELLED
-      ) {
+      if (isSessionEndedError(code)) {
         if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
-        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
-        refetch();
       } else {
         toast.error(
           getServerError(err, "Failed to resend code. Please try again."),
         );
+      }
+    },
+    onSettled: () => {
+      if (session?.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: authSessionQueryKeys.detail(session.session_id),
+        });
       }
     },
   });

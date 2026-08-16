@@ -3,15 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { getServerError, oauthApi } from "@/lib/api";
+import { authSessionQueryKeys, forgotPassword, getServerError } from "@/api";
+import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-
-import { useMutation } from "@tanstack/react-query";
-import Link from "next/link";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -19,11 +20,9 @@ const forgotPasswordSchema = z.object({
 
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
-import { itemVariants } from "@/lib/motion";
-import { motion } from "framer-motion";
-
 export function ForgotPasswordForm() {
   const { session } = useAuthSession();
+  const queryClient = useQueryClient();
   const [success, setSuccess] = useState(false);
 
   const form = useForm<ForgotPasswordValues>({
@@ -36,7 +35,7 @@ export function ForgotPasswordForm() {
   const mutation = useMutation({
     mutationFn: (values: ForgotPasswordValues) =>
       session
-        ? oauthApi.forgotPassword(session.session_id, values.email)
+        ? forgotPassword(session.session_id, values.email)
         : Promise.reject(new Error("No session")),
     onSuccess: () => {
       setSuccess(true);
@@ -46,6 +45,13 @@ export function ForgotPasswordForm() {
       toast.error(
         getServerError(err, "Failed to process request. Please try again."),
       );
+    },
+    onSettled: () => {
+      if (session?.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: authSessionQueryKeys.detail(session.session_id),
+        });
+      }
     },
   });
 

@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { getServerError, oauthApi } from "@/lib/api";
+import { authSessionQueryKeys, getServerError, signup } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -24,7 +24,8 @@ const signupSchema = z.object({
 type SignupValues = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
-  const { session, refetch } = useAuthSession();
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -37,7 +38,7 @@ export function SignupForm() {
   const signupMutation = useMutation({
     mutationFn: (values: SignupValues) =>
       session
-        ? oauthApi.signup(session.session_id, values)
+        ? signup(session.session_id, values)
         : Promise.reject(new Error("No session")),
     onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
       if (!session) return;
@@ -60,16 +61,16 @@ export function SignupForm() {
       }
     },
     onError: (err: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const code = (err as any)?.response?.data?.error as string | undefined;
-      if (code === "session_expired" || code === "session_cancelled") {
-        // Re-fetch session so the layout wrapper shows the expired/cancelled screen
-        refetch();
-        return;
-      }
       toast.error(
         getServerError(err, "Failed to create account. Please try again."),
       );
+    },
+    onSettled: () => {
+      if (session?.session_id) {
+        queryClient.invalidateQueries({
+          queryKey: authSessionQueryKeys.detail(session.session_id),
+        });
+      }
     },
   });
 

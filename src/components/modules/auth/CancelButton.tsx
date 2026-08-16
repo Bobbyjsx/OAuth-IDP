@@ -1,7 +1,7 @@
 "use client";
 
-import { oauthApi } from "@/lib/api";
-import { useMutation } from "@tanstack/react-query";
+import { authSessionQueryKeys, cancelSession } from "@/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
 interface CancelButtonProps {
@@ -16,12 +16,19 @@ interface CancelButtonProps {
  * primary form action.
  */
 export function CancelButton({ sessionId, appName }: CancelButtonProps) {
+  const queryClient = useQueryClient();
+
   const mutation = useMutation({
-    mutationFn: () => oauthApi.cancelSession(sessionId),
+    mutationFn: () => cancelSession(sessionId),
     onSuccess: (data) => {
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: authSessionQueryKeys.detail(sessionId),
+      });
     },
     // If cancel itself fails (e.g. already cancelled), silently ignore — the
     // user can't do anything useful and we avoid a confusing error toast.
