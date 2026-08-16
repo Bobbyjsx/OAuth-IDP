@@ -1,11 +1,17 @@
-import { api } from './axios';
+import { api, getServerError } from './axios';
 import type { 
   AuthSessionResponse, 
   OAuthRedirectResponse, 
   OAuthFlowResponse 
 } from '@/types/oauth';
 
+export { getServerError };
+
 export const oauthApi = {
+  checkHealth: async () => {
+    const { data } = await api.get('/health');
+    return data;
+  },
   getSession: async (sessionId: string) => {
     const { data } = await api.get<AuthSessionResponse>(
       `/api/v1/auth-sessions/${sessionId}`
@@ -49,6 +55,13 @@ export const oauthApi = {
     const { data } = await api.post<OAuthRedirectResponse | OAuthFlowResponse>(
       `/api/v1/auth-sessions/${sessionId}/verify-email`,
       { verification_token }
+    );
+    return data;
+  },
+
+  resendOtp: async (sessionId: string) => {
+    const { data } = await api.post<{ detail: string }>(
+      `/api/v1/auth-sessions/${sessionId}/resend-otp`
     );
     return data;
   },

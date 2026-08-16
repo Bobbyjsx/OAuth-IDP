@@ -23,5 +23,7 @@ export interface OAuthRedirectResponse {
 }
 
 export interface OAuthFlowResponse {
-  detail: string;
+  detail?: string;
+  redirect_url?: string | null;
+  email_verification_required?: boolean;
 }
