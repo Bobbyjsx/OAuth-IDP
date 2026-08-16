@@ -1,9 +1,10 @@
 import { LoginForm } from "@/components/modules/auth/LoginForm";
+import { Metadata } from "next";
 
-export default async function LoginPage({
-  params,
-}: {
-  params: Promise<{ transaction_id: string }>;
-}) {
+export const metadata: Metadata = {
+  title: "Sign In",
+};
+
+export default async function LoginPage() {
   return <LoginForm />;
 }

@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useAuthSession } from "@/components/modules/auth-session-provider";
-import { oauthApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
+import { useAuthSession } from "@/hooks/use-auth-session";
+import { getServerError, oauthApi } from "@/lib/api";
+import type { OAuthFlowResponse, OAuthRedirectResponse } from "@/types/oauth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+
 import { useMutation } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import Link from "next/link";
 
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -21,9 +21,11 @@ const signupSchema = z.object({
 
 type SignupValues = z.infer<typeof signupSchema>;
 
+import { itemVariants } from "@/lib/motion";
+import { motion } from "framer-motion";
+
 export function SignupForm() {
   const { session } = useAuthSession();
-  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
@@ -34,103 +36,111 @@ export function SignupForm() {
   });
 
   const signupMutation = useMutation({
-    mutationFn: (values: SignupValues) => oauthApi.signup(session.session_id, values),
-    onSuccess: (data: any) => {
+    mutationFn: (values: SignupValues) =>
+      session
+        ? oauthApi.signup(session.session_id, values)
+        : Promise.reject(new Error("No session")),
+    onSuccess: (data: OAuthRedirectResponse | OAuthFlowResponse) => {
+      if (!session) return;
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
-      } else if (data.detail === "email_verification_required" || session.application.require_email_verification) {
-        window.location.href = `/auth/${session.session_id}/verify-email?email=${encodeURIComponent(form.getValues("email"))}`;
+      } else if (
+        data.email_verification_required ||
+        session.application.require_email_verification
+      ) {
+        // Store email in sessionStorage — never in the URL (session is a bearer token)
+        sessionStorage.setItem(
+          `verify_email_${session.session_id}`,
+          form.getValues("email"),
+        );
+        window.location.href = `/auth/${session.session_id}/verify-email`;
       } else {
+        toast.success("Account created successfully!");
         window.location.href = `/auth/${session.session_id}/login`;
       }
     },
     onError: (err: unknown) => {
-      if (err instanceof AxiosError && err.response?.data?.detail) {
-        setError(err.response.data.detail);
-      } else {
-        setError("Failed to create account. Please try again.");
-      }
+      toast.error(
+        getServerError(err, "Failed to create account. Please try again."),
+      );
     },
   });
 
+  if (!session) return null;
+
   const onSubmit = (values: SignupValues) => {
-    setError(null);
     signupMutation.mutate(values);
   };
 
   if (!session.application.allow_signup) {
     return (
       <div className="w-full relative">
-        <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center">
-          <p className="text-body-md text-gray-medium dark:text-zinc-400 font-medium">Sign up is currently disabled for this application.</p>
-          <Link href={`/auth/${session.session_id}/login`} className="mt-6 block text-on-surface dark:text-zinc-100 font-medium underline-offset-4 transition-colors duration-200 hover:underline">
+        <motion.div
+          variants={itemVariants}
+          className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center"
+        >
+          <p className="text-body-md text-gray-medium dark:text-zinc-400 font-medium">
+            Sign up is currently disabled for this application.
+          </p>
+          <Link
+            href={`/auth/${session.session_id}/login`}
+            className="mt-6 block text-on-surface dark:text-zinc-100 font-medium underline-offset-4 transition-colors duration-200 hover:underline"
+          >
             Return to Login
           </Link>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="w-full relative">
-      <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-label-md text-on-surface dark:text-zinc-100 font-medium">Email</Label>
+      <motion.div variants={itemVariants}>
+        <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <Input
               id="email"
               type="email"
+              label="Email"
               autoComplete="email"
               placeholder="name@example.com"
+              error={form.formState.errors.email?.message}
               {...form.register("email")}
             />
-            {form.formState.errors.email && (
-              <p className="text-[13px] text-red-500 font-medium">{form.formState.errors.email.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-label-md text-on-surface dark:text-zinc-100 font-medium">Password</Label>
-            <Input
+
+            <PasswordInput
               id="password"
-              type="password"
+              label="Password"
               autoComplete="new-password"
+              error={form.formState.errors.password?.message}
               {...form.register("password")}
             />
-            {form.formState.errors.password && (
-              <p className="text-[13px] text-red-500 font-medium">{form.formState.errors.password.message}</p>
-            )}
-          </div>
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 mt-4">
-              <p className="text-sm font-medium text-red-600">{error}</p>
+            <div className="pt-3">
+              <Button
+                type="submit"
+                className="w-full h-10 text-[15px] rounded-xl font-medium"
+                isLoading={signupMutation.isPending}
+              >
+                Continue
+              </Button>
             </div>
-          )}
-
-          <div className="pt-3">
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-[15px] rounded-xl font-medium" 
-              disabled={signupMutation.isPending}
-            >
-              {signupMutation.isPending && (
-                <Loader2 className="mr-2 h-[18px] w-[18px] animate-spin" />
-              )}
-              Continue
-            </Button>
-          </div>
-        </form>
-      </div>
-      <p className="text-body-md text-gray-medium dark:text-zinc-400 mt-8 text-center">
+          </form>
+        </div>
+      </motion.div>
+      <motion.p
+        variants={itemVariants}
+        className="text-body-md text-gray-medium dark:text-zinc-400 mt-8 text-center"
+      >
         Already have an account?{" "}
-        <Link 
+        <Link
           href={`/auth/${session.session_id}/login`}
+          prefetch={true}
           className="text-on-surface dark:text-zinc-100 font-medium underline-offset-4 transition-colors duration-200 hover:underline"
         >
           Sign in
         </Link>
-      </p>
+      </motion.p>
     </div>
   );
 }

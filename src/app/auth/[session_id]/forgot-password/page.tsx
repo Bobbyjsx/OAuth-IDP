@@ -1,9 +1,10 @@
 import { ForgotPasswordForm } from "@/components/modules/auth/ForgotPasswordForm";
+import { Metadata } from "next";
 
-export default async function ForgotPasswordPage({
-  params,
-}: {
-  params: Promise<{ transaction_id: string }>;
-}) {
+export const metadata: Metadata = {
+  title: "Forgot Password",
+};
+
+export default async function ForgotPasswordPage() {
   return <ForgotPasswordForm />;
 }
