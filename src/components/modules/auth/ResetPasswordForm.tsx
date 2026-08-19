@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { getServerError, useResetPassword } from "@/api";
 import { itemVariants } from "@/lib/motion";
@@ -9,7 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -18,6 +19,7 @@ const resetPasswordSchema = z
   .object({
     new_password: z.string().min(8, "Password must be at least 8 characters."),
     confirm_password: z.string(),
+    turnstile_token: z.string().min(1, "Please complete the security check."),
   })
   .refine((data) => data.new_password === data.confirm_password, {
     message: "Passwords do not match",
@@ -32,24 +34,29 @@ export function ResetPasswordForm() {
   const token = searchParams.get("token");
 
   const [success, setSuccess] = useState(false);
+  const turnstileRef = useRef<TurnstileRef>(null);
 
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       new_password: "",
       confirm_password: "",
+      turnstile_token: "",
     },
   });
 
   const { mutate: performReset, isPending } = useResetPassword<{
     reset_token: string;
     new_password: string;
+    turnstile_token?: string;
   }>(session?.session_id ?? "", {
     onSuccess: () => {
       setSuccess(true);
       toast.success("Password reset successfully!");
     },
     onError: (err: unknown) => {
+      form.setValue("turnstile_token", "");
+      turnstileRef.current?.reset();
       toast.error(
         getServerError(err, "Failed to reset password. The link might be expired or invalid."),
       );
@@ -63,10 +70,24 @@ export function ResetPasswordForm() {
       toast.error("Missing reset token. Please use the link from your email.");
       return;
     }
+    const turnToken = values.turnstile_token || turnstileRef.current?.getResponse();
+    if (!turnToken) {
+      form.setError("turnstile_token", { message: "Please complete the security check." });
+      return;
+    }
     performReset({
       reset_token: token,
       new_password: values.new_password,
+      turnstile_token: turnToken,
     });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    const turnToken = form.getValues("turnstile_token") || turnstileRef.current?.getResponse();
+    if (turnToken && !form.getValues("turnstile_token")) {
+      form.setValue("turnstile_token", turnToken, { shouldValidate: true });
+    }
+    return form.handleSubmit(onSubmit)(e);
   };
 
   if (!token) {
@@ -117,7 +138,7 @@ export function ResetPasswordForm() {
     <div className="w-full relative">
       <motion.div variants={itemVariants}>
         <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleFormSubmit} className="space-y-5">
             <PasswordInput
               id="new_password"
               label="New Password"
@@ -132,6 +153,20 @@ export function ResetPasswordForm() {
               autoComplete="new-password"
               error={form.formState.errors.confirm_password?.message}
               {...form.register("confirm_password")}
+            />
+
+            <Turnstile
+              ref={turnstileRef}
+              action="reset-password"
+              error={form.formState.errors.turnstile_token?.message}
+              onSuccess={(token) =>
+                form.setValue("turnstile_token", token, { shouldValidate: true })
+              }
+              onError={() => {
+                form.setValue("turnstile_token", "");
+                turnstileRef.current?.reset();
+              }}
+              onExpire={() => form.setValue("turnstile_token", "", { shouldValidate: true })}
             />
 
             <div className="pt-3">

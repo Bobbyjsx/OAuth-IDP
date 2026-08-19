@@ -2,19 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { getServerError, useForgotPassword } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
+  turnstile_token: z.string().min(1, "Please complete the security check."),
 });
 
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
@@ -22,11 +24,13 @@ type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 export function ForgotPasswordForm() {
   const { session } = useAuthSession();
   const [success, setSuccess] = useState(false);
+  const turnstileRef = useRef<TurnstileRef>(null);
 
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
+      turnstile_token: "",
     },
   });
 
@@ -36,6 +40,8 @@ export function ForgotPasswordForm() {
       toast.success("Password reset link sent!");
     },
     onError: (err: unknown) => {
+      form.setValue("turnstile_token", "");
+      turnstileRef.current?.reset();
       toast.error(getServerError(err, "Failed to process request. Please try again."));
     },
   });
@@ -43,7 +49,20 @@ export function ForgotPasswordForm() {
   if (!session) return null;
 
   const onSubmit = (values: ForgotPasswordValues) => {
-    performSendReset(values.email);
+    const token = values.turnstile_token || turnstileRef.current?.getResponse();
+    if (!token) {
+      form.setError("turnstile_token", { message: "Please complete the security check." });
+      return;
+    }
+    performSendReset({ email: values.email, turnstile_token: token });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    const token = form.getValues("turnstile_token") || turnstileRef.current?.getResponse();
+    if (token && !form.getValues("turnstile_token")) {
+      form.setValue("turnstile_token", token, { shouldValidate: true });
+    }
+    return form.handleSubmit(onSubmit)(e);
   };
 
   if (success) {
@@ -75,7 +94,7 @@ export function ForgotPasswordForm() {
     <div className="w-full relative">
       <motion.div variants={itemVariants}>
         <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleFormSubmit} className="space-y-5">
             <Input
               id="email"
               type="email"
@@ -84,6 +103,20 @@ export function ForgotPasswordForm() {
               placeholder="name@example.com"
               error={form.formState.errors.email?.message}
               {...form.register("email")}
+            />
+
+            <Turnstile
+              ref={turnstileRef}
+              action="forgot-password"
+              error={form.formState.errors.turnstile_token?.message}
+              onSuccess={(token) =>
+                form.setValue("turnstile_token", token, { shouldValidate: true })
+              }
+              onError={() => {
+                form.setValue("turnstile_token", "");
+                turnstileRef.current?.reset();
+              }}
+              onExpire={() => form.setValue("turnstile_token", "", { shouldValidate: true })}
             />
 
             <div className="pt-3">
