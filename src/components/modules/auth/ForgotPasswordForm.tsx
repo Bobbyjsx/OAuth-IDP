@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
+import { useCountdown } from "@/hooks/use-countdown";
 import { getServerError, useForgotPassword } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +24,15 @@ type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
   const { session } = useAuthSession();
+  const RESEND_COOLDOWN_SECONDS = 60;
   const [success, setSuccess] = useState(false);
+  const [resendTurnstileToken, setResendTurnstileToken] = useState<string>("");
+  const resendTurnstileRef = useRef<TurnstileRef>(null);
+
+  const { countdown: resendCountdown, start: startCountdown } = useCountdown({
+    seconds: RESEND_COOLDOWN_SECONDS,
+    autoStart: false,
+  });
   const turnstileRef = useRef<TurnstileRef>(null);
 
   const form = useForm<ForgotPasswordValues>({
@@ -37,11 +46,14 @@ export function ForgotPasswordForm() {
   const { mutate: performSendReset, isPending } = useForgotPassword(session?.session_id ?? "", {
     onSuccess: () => {
       setSuccess(true);
+      startCountdown();
       toast.success("Password reset link sent!");
     },
     onError: (err: unknown) => {
       form.setValue("turnstile_token", "");
       turnstileRef.current?.reset();
+      resendTurnstileRef.current?.reset();
+      setResendTurnstileToken("");
       toast.error(getServerError(err, "Failed to process request. Please try again."));
     },
   });
@@ -66,6 +78,7 @@ export function ForgotPasswordForm() {
   };
 
   if (success) {
+    const canResend = resendCountdown === 0 && !isPending && !!resendTurnstileToken;
     return (
       <div className="w-full relative">
         <motion.div
@@ -79,12 +92,50 @@ export function ForgotPasswordForm() {
             </span>
             , you will receive instructions to reset your password.
           </p>
-          <Link
-            href={`/auth/${session.session_id}/login`}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-[15px] font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 border border-[rgba(0,0,0,0.06)] bg-gray-light dark:bg-zinc-800 hover:bg-[#eaeaea] dark:hover:bg-zinc-700 active:scale-[0.98] h-10 px-6 py-2 w-full text-on-surface dark:text-zinc-100"
-          >
-            Return to Login
-          </Link>
+
+          <div className="hidden">
+            <Turnstile
+              ref={resendTurnstileRef}
+              action="forgot-password-resend"
+              onSuccess={(token) => setResendTurnstileToken(token)}
+              onError={() => resendTurnstileRef.current?.reset()}
+              onExpire={() => resendTurnstileRef.current?.reset()}
+            />
+          </div>
+
+          <div className="space-y-4">
+            <Link
+              href={`/auth/${session.session_id}/login`}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-[15px] font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 h-10 px-6 py-2 w-full"
+            >
+              Return to Login
+            </Link>
+
+            <div className="text-center pt-2">
+              {resendCountdown > 0 ? (
+                <p className="text-body-md text-gray-medium dark:text-zinc-500">
+                  Resend link in{" "}
+                  <span className="tabular-nums font-medium text-on-surface dark:text-zinc-300">
+                    {resendCountdown}s
+                  </span>
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    performSendReset({
+                      email: form.getValues("email"),
+                      turnstile_token: resendTurnstileToken,
+                    })
+                  }
+                  disabled={!canResend}
+                  className="text-body-md text-gray-medium dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-4 hover:underline"
+                >
+                  {isPending ? "Sending…" : "Resend link"}
+                </button>
+              )}
+            </div>
+          </div>
         </motion.div>
       </div>
     );
