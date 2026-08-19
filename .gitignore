@@ -40,16 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-<<<<<<< HEAD
 
 # Wrangler / OpenNext
 .wrangler
+.wrangler/**
 .open-next
+.open-next/**
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
 .env*.local
-=======
-.open-next/**
-.wrangler/**
->>>>>>> 991556e (feat(theme): enforce branding themes with system color scheme fallback)
