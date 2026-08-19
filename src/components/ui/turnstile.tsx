@@ -116,7 +116,7 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
               }
             },
           });
-          if (isMounted && checkIsReady()) {
+          if (widgetIdRef.current && isMounted) {
             setIsWidgetRendered(true);
           }
         } catch {
@@ -145,11 +145,12 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
         };
       }
 
-      // Observe DOM mutations to sync token value and detect widget render
+      // Observe DOM mutations to sync token value and detect widget mount
       const observer = new MutationObserver(() => {
         if (isMounted) {
-          const ready = checkIsReady();
-          setIsWidgetRendered((prev) => (prev !== ready ? ready : prev));
+          if (!isWidgetRendered && (containerRef.current?.children.length || 0) > 0) {
+            setIsWidgetRendered(true);
+          }
           const token = getDOMToken();
           if (token) {
             callbacksRef.current.onSuccess(token);
@@ -182,7 +183,7 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
       <div className="w-full space-y-1">
         <div className="relative min-h-[65px] my-2">
           {!isWidgetRendered && (
-            <div className="h-[65px] w-full max-w-[300px] rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/60 p-3.5 flex items-center justify-between animate-pulse">
+            <div className="absolute inset-0 z-0 h-[65px] w-full max-w-[300px] rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/60 p-3.5 flex items-center justify-between animate-pulse pointer-events-none">
               <div className="flex items-center space-x-3">
                 <div className="w-5 h-5 rounded border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-200 dark:bg-zinc-800" />
                 <div className="space-y-1.5">
@@ -195,7 +196,7 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
           )}
           <div
             ref={containerRef}
-            className={`cf-turnstile min-h-[65px] ${!isWidgetRendered ? "opacity-0 absolute inset-0 pointer-events-none" : "opacity-100 transition-opacity duration-200"} ${className}`}
+            className={`relative z-10 cf-turnstile min-h-[65px] ${className}`}
           />
         </div>
         {error && <p className="text-[13px] text-red-500 font-medium">{error}</p>}
