@@ -46,7 +46,7 @@ const TURNSTILE_API_URL =
 export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
   (
     {
-      siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAEVN54c9DUqUyfaO",
+      siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "",
       action,
       onSuccess,
       onError,
