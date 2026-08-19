@@ -73,8 +73,16 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
       return input?.value || undefined;
     };
 
+    const checkIsReady = () => {
+      if (!containerRef.current) return false;
+      const hasIframe = !!containerRef.current.querySelector("iframe");
+      const token = getDOMToken();
+      return hasIframe || !!token;
+    };
+
     useImperativeHandle(ref, () => ({
       reset: () => {
+        setIsWidgetRendered(false);
         if (widgetIdRef.current && window.turnstile) {
           window.turnstile.reset(widgetIdRef.current);
         }
@@ -93,16 +101,22 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
             action,
             theme: "auto",
             callback: (token) => {
-              if (isMounted) callbacksRef.current.onSuccess(token);
+              if (isMounted) {
+                setIsWidgetRendered(true);
+                callbacksRef.current.onSuccess(token);
+              }
             },
             "error-callback": (err) => {
               if (isMounted) callbacksRef.current.onError?.(err);
             },
             "expired-callback": () => {
-              if (isMounted) callbacksRef.current.onExpire?.();
+              if (isMounted) {
+                setIsWidgetRendered(false);
+                callbacksRef.current.onExpire?.();
+              }
             },
           });
-          if (widgetIdRef.current && isMounted) {
+          if (isMounted && checkIsReady()) {
             setIsWidgetRendered(true);
           }
         } catch {
@@ -134,9 +148,8 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
       // Observe DOM mutations to sync token value and detect widget render
       const observer = new MutationObserver(() => {
         if (isMounted) {
-          if (!isWidgetRendered && (containerRef.current?.children.length || 0) > 0) {
-            setIsWidgetRendered(true);
-          }
+          const ready = checkIsReady();
+          setIsWidgetRendered((prev) => (prev !== ready ? ready : prev));
           const token = getDOMToken();
           if (token) {
             callbacksRef.current.onSuccess(token);
