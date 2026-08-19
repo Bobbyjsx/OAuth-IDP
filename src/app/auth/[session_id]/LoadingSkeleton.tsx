@@ -1,7 +1,7 @@
 export const LoadingSkeleton = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-zinc-50 dark:bg-zinc-950">
-      <div className="w-full max-w-[400px]">
+      <div className="w-full max-w-[380px] z-10">
         <div className="mb-10 flex flex-col items-center justify-center space-y-4">
           <div className="h-10 w-32 rounded-lg bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
           <div className="h-4 w-48 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse" />

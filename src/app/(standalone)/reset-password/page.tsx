@@ -17,7 +17,6 @@ export default function StandaloneResetPasswordPage() {
 
   const { mutate: exchange, error } = useExchangeResetToken({
     onSuccess: (data) => {
-      // Redirect to the session-bound reset-password page
       router.replace(`/auth/${data.session_id}/reset-password?token=${token}`);
     },
     onError: (err) => {
@@ -36,31 +35,35 @@ export default function StandaloneResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="w-full relative">
-        <motion.div
-          variants={itemVariants}
-          className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center"
-        >
-          <p className="text-body-md text-gray-medium dark:text-zinc-400 font-medium mb-8 leading-relaxed">
-            The password reset link is missing a required token.
-          </p>
-        </motion.div>
+      <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-500">
+        <div className="w-full max-w-[380px] z-10">
+          <motion.div
+            variants={itemVariants}
+            className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center"
+          >
+            <p className="text-body-md text-gray-medium dark:text-zinc-400 font-medium leading-relaxed">
+              The password reset link is missing a required token.
+            </p>
+          </motion.div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full relative">
-        <motion.div variants={itemVariants}>
-          <ErrorState
-            title="Invalid Link"
-            message={getServerError(
-              error,
-              "Failed to load application context. The link might be expired or invalid.",
-            )}
-          />
-        </motion.div>
+      <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-zinc-50 dark:bg-zinc-950 transition-colors duration-500">
+        <div className="w-full max-w-[380px] z-10">
+          <motion.div variants={itemVariants}>
+            <ErrorState
+              title="Invalid Link"
+              message={getServerError(
+                error,
+                "Failed to load application context. The link might be expired or invalid.",
+              )}
+            />
+          </motion.div>
+        </div>
       </div>
     );
   }
