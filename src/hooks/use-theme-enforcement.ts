@@ -4,14 +4,14 @@ import { useEffect, useSyncExternalStore } from "react";
 
 function subscribeToColorScheme(callback: () => void) {
   if (typeof window === "undefined") return () => {};
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   mediaQuery.addEventListener("change", callback);
   return () => mediaQuery.removeEventListener("change", callback);
 }
 
 function getColorSchemeSnapshot(): boolean {
   if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-color-scheme: light)").matches;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
 function getServerSnapshot(): boolean {
