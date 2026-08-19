@@ -4,12 +4,14 @@ import { CancelButton } from "@/components/modules/auth/CancelButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import { getServerError, useSignup } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -17,18 +19,21 @@ import * as z from "zod";
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters."),
+  turnstile_token: z.string().min(1, "Please complete the security check."),
 });
 
 type SignupValues = z.infer<typeof signupSchema>;
 
 export function SignupForm() {
   const { session } = useAuthSession();
+  const turnstileRef = useRef<TurnstileRef>(null);
 
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       email: "",
       password: "",
+      turnstile_token: "",
     },
   });
 
@@ -50,6 +55,8 @@ export function SignupForm() {
       }
     },
     onError: (err: unknown) => {
+      form.setValue("turnstile_token", "");
+      turnstileRef.current?.reset();
       toast.error(getServerError(err, "Failed to create account. Please try again."));
     },
   });
@@ -57,7 +64,20 @@ export function SignupForm() {
   if (!session) return null;
 
   const onSubmit = (values: SignupValues) => {
-    performSignup(values);
+    const token = values.turnstile_token || turnstileRef.current?.getResponse();
+    if (!token) {
+      form.setError("turnstile_token", { message: "Please complete the security check." });
+      return;
+    }
+    performSignup({ ...values, turnstile_token: token });
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    const token = form.getValues("turnstile_token") || turnstileRef.current?.getResponse();
+    if (token && !form.getValues("turnstile_token")) {
+      form.setValue("turnstile_token", token, { shouldValidate: true });
+    }
+    return form.handleSubmit(onSubmit)(e);
   };
 
   if (!session.application.allow_signup) {
@@ -85,7 +105,7 @@ export function SignupForm() {
     <div className="w-full relative">
       <motion.div variants={itemVariants}>
         <div className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleFormSubmit} className="space-y-5">
             <Input
               id="email"
               type="email"
@@ -102,6 +122,20 @@ export function SignupForm() {
               autoComplete="new-password"
               error={form.formState.errors.password?.message}
               {...form.register("password")}
+            />
+
+            <Turnstile
+              ref={turnstileRef}
+              action="signup"
+              error={form.formState.errors.turnstile_token?.message}
+              onSuccess={(token) =>
+                form.setValue("turnstile_token", token, { shouldValidate: true })
+              }
+              onError={() => {
+                form.setValue("turnstile_token", "");
+                turnstileRef.current?.reset();
+              }}
+              onExpire={() => form.setValue("turnstile_token", "", { shouldValidate: true })}
             />
 
             <div className="pt-3">

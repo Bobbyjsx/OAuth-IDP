@@ -3,6 +3,7 @@
 import { CancelButton } from "@/components/modules/auth/CancelButton";
 import { OtpInput } from "@/components/ui/otp-input";
 import { Button } from "@/components/ui/button";
+import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
 import {
   ApiErrorCode,
@@ -15,7 +16,7 @@ import {
 import { itemVariants } from "@/lib/motion";
 import { motion } from "framer-motion";
 import { useCountdown } from "@/hooks/use-countdown";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -36,6 +37,13 @@ export function VerifyEmailForm() {
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileRef>(null);
+
+  const refreshTurnstile = () => {
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
+  };
 
   // Resend countdown timer
   const { countdown: resendCountdown, start: startCountdown } = useCountdown({
@@ -53,8 +61,10 @@ export function VerifyEmailForm() {
         setInlineError(null);
         setAttemptsLeft(null);
         startCountdown();
+        refreshTurnstile();
       },
       onError: (err: unknown) => {
+        refreshTurnstile();
         const code = getApiErrorCode(err);
         if (isSessionEndedError(code)) {
           if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
@@ -78,6 +88,7 @@ export function VerifyEmailForm() {
         }
       },
       onError: (err: unknown) => {
+        refreshTurnstile();
         const code = getApiErrorCode(err);
 
         if (code === ApiErrorCode.InvalidVerificationToken) {
@@ -96,8 +107,8 @@ export function VerifyEmailForm() {
           setInlineError("Your code has expired. Request a new one below.");
           setOtp("");
           // Auto-trigger resend if cooldown is done
-          if (resendCountdown === 0) {
-            performResend();
+          if (resendCountdown === 0 && turnstileToken) {
+            performResend({ turnstile_token: turnstileToken });
           }
         } else if (isSessionEndedError(code)) {
           if (sessionId) sessionStorage.removeItem(`verify_email_${sessionId}`);
@@ -110,14 +121,17 @@ export function VerifyEmailForm() {
 
   if (!session) return null;
 
-  const canSubmit = otp.length === 6 && !isLocked;
-  const canResend = resendCountdown === 0 && !isResending;
+  const canResend = resendCountdown === 0 && !isResending && !!turnstileToken;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (otp.length !== 6 || isLocked) return;
+    if (!turnstileToken) {
+      setInlineError("Please complete the security check.");
+      return;
+    }
     setInlineError(null);
-    performVerify(otp);
+    performVerify({ verification_token: otp, turnstile_token: turnstileToken });
   };
 
   // ── Locked state ─────────────────────────────────────────────────────────────
@@ -201,13 +215,31 @@ export function VerifyEmailForm() {
               </p>
             )}
 
+            <Turnstile
+              ref={turnstileRef}
+              action="verify-email"
+              error={
+                !turnstileToken && inlineError === "Please complete the security check."
+                  ? inlineError
+                  : undefined
+              }
+              onSuccess={(token) => {
+                setTurnstileToken(token);
+                if (inlineError === "Please complete the security check.") {
+                  setInlineError(null);
+                }
+              }}
+              onError={refreshTurnstile}
+              onExpire={refreshTurnstile}
+            />
+
             {/* Verify button */}
             <div className="pt-1">
               <Button
                 type="submit"
                 className="w-full h-11 text-[15px] rounded-xl font-medium"
                 isLoading={isVerifying}
-                disabled={!canSubmit}
+                disabled={otp.length !== 6 || isLocked}
               >
                 Verify email
               </Button>
@@ -226,7 +258,7 @@ export function VerifyEmailForm() {
             ) : (
               <button
                 type="button"
-                onClick={() => performResend()}
+                onClick={() => performResend({ turnstile_token: turnstileToken })}
                 disabled={!canResend}
                 className="text-body-md text-gray-medium dark:text-zinc-400 hover:text-on-surface dark:hover:text-zinc-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed underline-offset-4 hover:underline"
               >
