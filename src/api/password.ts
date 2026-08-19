@@ -62,22 +62,22 @@ export function useResetPassword<TVariables = Record<string, string>>(
   });
 }
 
-export async function standaloneResetPassword(
-  credentials: Record<string, string>,
-): Promise<OAuthFlowResponse> {
-  const { data } = await api.post<OAuthFlowResponse>(`/api/v1/auth/password/reset`, credentials);
+export async function exchangeResetToken(reset_token: string): Promise<{ session_id: string }> {
+  const { data } = await api.post<{ session_id: string }>(
+    `/api/v1/auth/password/exchange-reset-token`,
+    { reset_token },
+  );
   return data;
 }
 
-export function useStandaloneResetPassword<TVariables = Record<string, string>>(
-  options?: UseMutationOptions<OAuthFlowResponse, Error, TVariables>,
+export function useExchangeResetToken(
+  options?: UseMutationOptions<{ session_id: string }, Error, string>,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     ...options,
-    mutationFn: (credentials: TVariables) =>
-      standaloneResetPassword(credentials as Record<string, string>),
+    mutationFn: (reset_token: string) => exchangeResetToken(reset_token),
     onSettled: (...args) => {
       options?.onSettled?.(...args);
     },
