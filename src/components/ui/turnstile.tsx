@@ -58,6 +58,7 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const widgetIdRef = useRef<string | null>(null);
+    const [isWidgetRendered, setIsWidgetRendered] = React.useState(false);
     const callbacksRef = useRef({ onSuccess, onError, onExpire });
     callbacksRef.current = { onSuccess, onError, onExpire };
 
@@ -101,6 +102,9 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
               if (isMounted) callbacksRef.current.onExpire?.();
             },
           });
+          if (widgetIdRef.current && isMounted) {
+            setIsWidgetRendered(true);
+          }
         } catch {
           // Duplicate renders are swallowed; the widget is already mounted.
         }
@@ -127,11 +131,16 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
         };
       }
 
-      // Observe DOM mutations to sync token value if set directly by Turnstile script
+      // Observe DOM mutations to sync token value and detect widget render
       const observer = new MutationObserver(() => {
-        const token = getDOMToken();
-        if (token && isMounted) {
-          callbacksRef.current.onSuccess(token);
+        if (isMounted) {
+          if (!isWidgetRendered && (containerRef.current?.children.length || 0) > 0) {
+            setIsWidgetRendered(true);
+          }
+          const token = getDOMToken();
+          if (token) {
+            callbacksRef.current.onSuccess(token);
+          }
         }
       });
 
@@ -158,7 +167,24 @@ export const Turnstile = React.forwardRef<TurnstileRef, TurnstileProps>(
 
     return (
       <div className="w-full space-y-1">
-        <div ref={containerRef} className={`cf-turnstile min-h-[65px] my-2 ${className}`} />
+        <div className="relative min-h-[65px] my-2">
+          {!isWidgetRendered && (
+            <div className="h-[65px] w-full max-w-[300px] rounded-lg border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/60 p-3.5 flex items-center justify-between animate-pulse">
+              <div className="flex items-center space-x-3">
+                <div className="w-5 h-5 rounded border-2 border-zinc-300 dark:border-zinc-700 bg-zinc-200 dark:bg-zinc-800" />
+                <div className="space-y-1.5">
+                  <div className="h-3 w-28 rounded bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="h-2 w-16 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+                </div>
+              </div>
+              <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 opacity-60" />
+            </div>
+          )}
+          <div
+            ref={containerRef}
+            className={`cf-turnstile min-h-[65px] ${!isWidgetRendered ? "opacity-0 absolute inset-0 pointer-events-none" : "opacity-100 transition-opacity duration-200"} ${className}`}
+          />
+        </div>
         {error && <p className="text-[13px] text-red-500 font-medium">{error}</p>}
       </div>
     );
