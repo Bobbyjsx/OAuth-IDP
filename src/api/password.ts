@@ -3,10 +3,18 @@ import type { OAuthFlowResponse } from "@/types/oauth";
 import { useMutation, useQueryClient, type UseMutationOptions } from "@tanstack/react-query";
 import { authSessionQueryKeys } from "./auth-session";
 
-export async function forgotPassword(sessionId: string, email: string): Promise<OAuthFlowResponse> {
+export interface ForgotPasswordBody {
+  email: string;
+  turnstile_token?: string;
+}
+
+export async function forgotPassword(
+  sessionId: string,
+  body: ForgotPasswordBody,
+): Promise<OAuthFlowResponse> {
   const { data } = await api.post<OAuthFlowResponse>(
     `/api/v1/auth-sessions/${sessionId}/forgot-password`,
-    { email },
+    body,
   );
   return data;
 }
@@ -22,15 +30,16 @@ export async function resetPassword(
   return data;
 }
 
-export function useForgotPassword(
+export function useForgotPassword<TVariables = ForgotPasswordBody>(
   sessionId: string,
-  options?: UseMutationOptions<OAuthFlowResponse, Error, string>,
+  options?: UseMutationOptions<OAuthFlowResponse, Error, TVariables>,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     ...options,
-    mutationFn: (email: string) => forgotPassword(sessionId, email),
+    mutationFn: (body: TVariables) =>
+      forgotPassword(sessionId, body as unknown as ForgotPasswordBody),
     onSettled: (...args) => {
       options?.onSettled?.(...args);
     },
