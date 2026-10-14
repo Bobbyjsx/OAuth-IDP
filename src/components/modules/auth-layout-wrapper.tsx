@@ -48,11 +48,14 @@ export function AuthLayoutWrapper({ children }: { children: ReactNode }) {
   }
 
   // Generate full Tailwind color scales if branding colors exist
+  const primaryColor =
+    session.application.primary_color ?? session.application.branding?.primary_color;
+  const secondaryColor =
+    session.application.secondary_color ?? session.application.branding?.secondary_color;
+
   const style = {
-    ...(session.application.primary_color &&
-      generateColorScale(session.application.primary_color, "primary")),
-    ...(session.application.secondary_color &&
-      generateColorScale(session.application.secondary_color, "secondary")),
+    ...(primaryColor && generateColorScale(primaryColor, "primary")),
+    ...(secondaryColor && generateColorScale(secondaryColor, "secondary")),
   } as React.CSSProperties;
 
   const currentView = pathname.split("/").pop();

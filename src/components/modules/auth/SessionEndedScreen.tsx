@@ -71,7 +71,7 @@ export function SessionEndedScreen({ status, appName, redirectUrl }: SessionEnde
                 stop();
                 window.location.href = redirectUrl;
               }}
-              className="w-full inline-flex items-center justify-center h-11 px-4 rounded-xl bg-primary-600 text-white text-[15px] font-medium hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+              className="w-full inline-flex items-center justify-center h-11 px-4 rounded-xl bg-primary-500 text-white text-[15px] font-medium hover:bg-primary-600 dark:bg-primary-500 dark:hover:bg-primary-600 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
             >
               Return to {appName}
             </button>
