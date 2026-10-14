@@ -16,7 +16,8 @@ import {
 import { itemVariants } from "@/lib/motion";
 import { motion } from "framer-motion";
 import { useCountdown } from "@/hooks/use-countdown";
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -24,6 +25,12 @@ const MAX_ATTEMPTS = 5;
 
 export function VerifyEmailForm() {
   const { session, sessionId } = useAuthSession();
+
+  useEffect(() => {
+    if (session && !session.application.require_email_verification) {
+      window.location.href = `/auth/${session.session_id}/login`;
+    }
+  }, [session]);
 
   // Read email stored by Login/SignupForm in sessionStorage — never from the URL.
   // Lazy initializer runs once synchronously, no effect needed.
@@ -120,6 +127,27 @@ export function VerifyEmailForm() {
   );
 
   if (!session) return null;
+
+  if (!session.application.require_email_verification) {
+    return (
+      <div className="w-full relative">
+        <motion.div
+          variants={itemVariants}
+          className="ambient-shadow rounded-xl border border-[rgba(0,0,0,0.06)] bg-white dark:bg-zinc-900 p-8 md:p-10 text-center"
+        >
+          <p className="text-body-md text-gray-medium dark:text-zinc-400 font-medium">
+            Email verification is not required for this application.
+          </p>
+          <Link
+            href={`/auth/${session.session_id}/login`}
+            className="mt-6 block text-on-surface dark:text-zinc-100 font-medium underline-offset-4 transition-colors duration-200 hover:underline"
+          >
+            Return to Login
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   const canResend = resendCountdown === 0 && !isResending && !!turnstileToken;
 

@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Turnstile, type TurnstileRef } from "@/components/ui/turnstile";
 import { useAuthSession } from "@/hooks/use-auth-session";
-import { getServerError, useSignup } from "@/api";
+import { ApiErrorCode, getApiErrorCode, getServerError, useSignup } from "@/api";
 import { itemVariants } from "@/lib/motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -28,6 +28,12 @@ export function SignupForm() {
   const { session } = useAuthSession();
   const turnstileRef = useRef<TurnstileRef>(null);
 
+  useEffect(() => {
+    if (session?.status === "authenticated" && session?.application?.require_email_verification) {
+      window.location.href = `/auth/${session.session_id}/verify-email`;
+    }
+  }, [session?.status, session?.session_id, session?.application?.require_email_verification]);
+
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -43,11 +49,13 @@ export function SignupForm() {
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
       } else if (
-        ("email_verification_required" in data && data.email_verification_required) ||
+        "email_verification_required" in data &&
+        data.email_verification_required &&
         session.application.require_email_verification
       ) {
         // Store email in sessionStorage — never in the URL (session is a bearer token)
         sessionStorage.setItem(`verify_email_${session.session_id}`, form.getValues("email"));
+        toast.success("Account created! Please verify your email to continue.");
         window.location.href = `/auth/${session.session_id}/verify-email`;
       } else {
         toast.success("Account created successfully!");
@@ -57,6 +65,26 @@ export function SignupForm() {
     onError: (err: unknown) => {
       form.setValue("turnstile_token", "");
       turnstileRef.current?.reset();
+      const code = getApiErrorCode(err);
+      const isEmailVerificationRequired =
+        code === ApiErrorCode.EmailVerificationRequired ||
+        (typeof err === "object" &&
+          err !== null &&
+          "response" in err &&
+          (err as { response?: { data?: { error?: string } } }).response?.data?.error ===
+            "email_verification_required");
+
+      if (
+        isEmailVerificationRequired &&
+        session &&
+        session.application.require_email_verification
+      ) {
+        sessionStorage.setItem(`verify_email_${session.session_id}`, form.getValues("email"));
+        toast.info("Please verify your email address to continue.");
+        window.location.href = `/auth/${session.session_id}/verify-email`;
+        return;
+      }
+
       toast.error(getServerError(err, "Failed to create account. Please try again."));
     },
   });

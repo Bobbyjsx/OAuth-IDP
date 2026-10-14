@@ -14,6 +14,8 @@ export enum ApiErrorCode {
   InvalidCredentials = "invalid_credentials",
   AccountLocked = "account_locked",
   AccountDisabled = "account_disabled",
+  EmailVerificationRequired = "email_verification_required",
+  EmailVerificationNotRequired = "email_verification_not_required",
 
   // ── Email verification ─────────────────────────────────────────────────────
   InvalidVerificationToken = "invalid_verification_token",
