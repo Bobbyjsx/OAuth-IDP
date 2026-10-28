@@ -87,3 +87,12 @@ body {
     letter-spacing: -0.025em;
   }
 }
+
+/* Prevent unwanted iOS Safari auto-zoom on input focus while preserving manual zoom */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
