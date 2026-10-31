@@ -1,5 +1,10 @@
 export type SupportedTheme = "light" | "dark";
 
+export interface ApplicationLegalConfig {
+  privacy?: string | null;
+  terms?: string | null;
+}
+
 export interface PublicApplicationConfig {
   name: string;
   description?: string | null;
@@ -20,6 +25,7 @@ export interface PublicApplicationConfig {
   allow_password_login: boolean;
   require_email_verification: boolean;
   allowed_scopes?: string[];
+  legal?: ApplicationLegalConfig | null;
 }
 
 export interface AuthSessionResponse {

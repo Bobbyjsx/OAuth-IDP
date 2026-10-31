@@ -91,6 +91,12 @@ export function SignupForm() {
 
   if (!session) return null;
 
+  const appName = session.application?.name;
+  const legal = session.application?.legal;
+  const privacyUrl = legal?.privacy?.trim();
+  const termsUrl = legal?.terms?.trim();
+  const hasLegal = Boolean(privacyUrl || termsUrl);
+
   const onSubmit = (values: SignupValues) => {
     const token = values.turnstile_token || turnstileRef.current?.getResponse();
     if (!token) {
@@ -166,7 +172,7 @@ export function SignupForm() {
               onExpire={() => form.setValue("turnstile_token", "", { shouldValidate: true })}
             />
 
-            <div className="pt-3">
+            <div className="pt-3 space-y-3">
               <Button
                 type="submit"
                 className="w-full h-10 text-[15px] rounded-xl font-medium"
@@ -174,6 +180,52 @@ export function SignupForm() {
               >
                 Continue
               </Button>
+
+              {hasLegal && (
+                <p className="text-center text-xs text-gray-medium dark:text-zinc-400 leading-normal">
+                  By signing up, you agree to {appName ? `${appName}&apos;s ` : "the "}
+                  {termsUrl && privacyUrl ? (
+                    <>
+                      <a
+                        href={termsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-on-surface dark:text-zinc-200 underline underline-offset-4 hover:underline transition-colors"
+                      >
+                        Terms of Service
+                      </a>
+                      {" and "}
+                      <a
+                        href={privacyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-on-surface dark:text-zinc-200 underline underline-offset-4 hover:underline transition-colors"
+                      >
+                        Privacy Policy
+                      </a>
+                    </>
+                  ) : termsUrl ? (
+                    <a
+                      href={termsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-on-surface dark:text-zinc-200 underline underline-offset-4 hover:underline transition-colors"
+                    >
+                      Terms of Service
+                    </a>
+                  ) : (
+                    <a
+                      href={privacyUrl!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-on-surface dark:text-zinc-200 underline underline-offset-4 hover:underline transition-colors"
+                    >
+                      Privacy Policy
+                    </a>
+                  )}
+                  .
+                </p>
+              )}
             </div>
           </form>
         </div>
